@@ -25,8 +25,8 @@ def dump_repo(
         encoding: Suggested encoding if the caller writes the dump to disk. The
             value is not used by ``dump_repo`` itself.
         **cli_kwargs: Extra options matching the CLI such as ``include``,
-            ``exclude``, ``max_size``, ``max_tokens``, ``binary_strict`` and
-            ``private_token``.
+            ``exclude``, ``max_size``, ``max_tokens``, ``binary_strict``,
+            ``exclude_comments`` and ``private_token``.
 
     Returns:
         The rendered dump.
@@ -37,6 +37,7 @@ def dump_repo(
     max_size = cli_kwargs.get("max_size", DEFAULT_MAX_SIZE)
     max_tokens = cli_kwargs.get("max_tokens")
     binary_strict = cli_kwargs.get("binary_strict", True)
+    exclude_comments = cli_kwargs.get("exclude_comments", False)
     private_token = cli_kwargs.get("private_token")
 
     path = Path(path_or_url)
@@ -48,7 +49,13 @@ def dump_repo(
             max_size=max_size,
             binary_strict=binary_strict,
         )
-        return render(files, path, max_tokens=max_tokens, fmt=fmt)
+        return render(
+            files,
+            path,
+            max_tokens=max_tokens,
+            fmt=fmt,
+            exclude_comments=exclude_comments,
+        )
 
     url = str(path_or_url)
     with download_repo(url, private_token) as tmp:
@@ -59,4 +66,10 @@ def dump_repo(
             max_size=max_size,
             binary_strict=binary_strict,
         )
-        return render(files, tmp, max_tokens=max_tokens, fmt=fmt)
+        return render(
+            files,
+            tmp,
+            max_tokens=max_tokens,
+            fmt=fmt,
+            exclude_comments=exclude_comments,
+        )

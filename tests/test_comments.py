@@ -1,0 +1,212 @@
+"""Tests for comment stripping functionality."""
+
+from pathlib import Path
+
+from uithub_local.utils import strip_comments
+
+
+def test_strip_python_comments():
+    """Test stripping # comments from Python."""
+    content = """# This is a comment
+x = 5  # inline comment
+y = "# not a comment"
+z = '# also not a comment'
+"""
+    result = strip_comments(content, Path("test.py"))
+    assert "# This is a comment" not in result
+    assert "# inline comment" not in result
+    assert "# not a comment" in result
+    assert "# also not a comment" in result
+    assert "x = 5" in result
+
+
+def test_strip_javascript_comments():
+    """Test stripping // and /* */ from JavaScript."""
+    content = """// Single line comment
+const x = 5; // inline
+/* Multi-line
+   comment */
+const y = "// not a comment";
+const z = '/* also not */';
+"""
+    result = strip_comments(content, Path("test.js"))
+    assert "// Single line comment" not in result
+    assert "// inline" not in result
+    assert "Multi-line" not in result
+    assert "comment */" not in result
+    assert "const x = 5;" in result
+    assert "// not a comment" in result
+    assert "/* also not */" in result
+
+
+def test_strip_c_comments():
+    """Test stripping C-style comments."""
+    content = """// C++ style comment
+int x = 5; // inline
+/* C style
+   comment */
+char *s = "// not a comment";
+"""
+    result = strip_comments(content, Path("test.c"))
+    assert "// C++ style comment" not in result
+    assert "// inline" not in result
+    assert "C style" not in result
+    assert "int x = 5;" in result
+    assert "// not a comment" in result
+
+
+def test_strip_html_comments():
+    """Test stripping HTML comments."""
+    content = """<html>
+<!-- This is a comment -->
+<body>
+<!-- Multi-line
+     comment -->
+<p>Text</p>
+</body>
+</html>"""
+    result = strip_comments(content, Path("test.html"))
+    assert "<!-- This is a comment -->" not in result
+    assert "Multi-line" not in result
+    assert "<body>" in result
+    assert "<p>Text</p>" in result
+
+
+def test_strip_css_comments():
+    """Test stripping CSS comments."""
+    content = """/* Header styles */
+.header {
+    color: red; /* inline */
+}
+/* Multi-line
+   comment */
+"""
+    result = strip_comments(content, Path("test.css"))
+    assert "Header styles" not in result
+    assert "inline" not in result
+    assert "Multi-line" not in result
+    assert ".header {" in result
+    assert "color: red;" in result
+
+
+def test_strip_sql_comments():
+    """Test stripping SQL comments."""
+    content = """-- Single line comment
+SELECT * FROM users; -- inline comment
+/* Multi-line
+   comment */
+WHERE name = 'test';
+"""
+    result = strip_comments(content, Path("test.sql"))
+    assert "-- Single line comment" not in result
+    assert "-- inline comment" not in result
+    assert "Multi-line" not in result
+    assert "SELECT * FROM users;" in result
+    assert "WHERE name = 'test';" in result
+
+
+def test_strip_ruby_comments():
+    """Test stripping Ruby # comments."""
+    content = """# Ruby comment
+x = 5 # inline
+y = "# not a comment"
+"""
+    result = strip_comments(content, Path("test.rb"))
+    assert "# Ruby comment" not in result
+    assert "# inline" not in result
+    assert "# not a comment" in result
+    assert "x = 5" in result
+
+
+def test_strip_lua_comments():
+    """Test stripping Lua comments."""
+    content = """-- Single line
+x = 5 -- inline
+--[[ Multi-line
+     comment ]]
+y = 10
+"""
+    result = strip_comments(content, Path("test.lua"))
+    assert "-- Single line" not in result
+    assert "-- inline" not in result
+    assert "Multi-line" not in result
+    assert "x = 5" in result
+    assert "y = 10" in result
+
+
+def test_strip_haskell_comments():
+    """Test stripping Haskell comments."""
+    content = """-- Single line
+x = 5 -- inline
+{- Multi-line
+   comment -}
+y = 10
+"""
+    result = strip_comments(content, Path("test.hs"))
+    assert "-- Single line" not in result
+    assert "-- inline" not in result
+    assert "Multi-line" not in result
+    assert "x = 5" in result
+    assert "y = 10" in result
+
+
+def test_strip_lisp_comments():
+    """Test stripping Lisp ; comments."""
+    content = """; Comment
+(defun test ()
+  (+ 1 2)) ; inline
+"""
+    result = strip_comments(content, Path("test.lisp"))
+    assert "; Comment" not in result
+    assert "; inline" not in result
+    assert "(defun test ()" in result
+
+
+def test_unsupported_extension():
+    """Test that unsupported extensions return original content."""
+    content = "# This should remain"
+    result = strip_comments(content, Path("test.unknown"))
+    assert result == content
+
+
+def test_empty_file():
+    """Test handling empty files."""
+    content = ""
+    result = strip_comments(content, Path("test.py"))
+    assert result == ""
+
+
+def test_file_with_only_comments():
+    """Test file containing only comments."""
+    content = """# Comment 1
+# Comment 2
+# Comment 3
+"""
+    result = strip_comments(content, Path("test.py"))
+    # Should have empty lines where comments were
+    lines = result.strip().split("\n")
+    assert all(line == "" for line in lines)
+
+
+def test_multiline_string_preservation():
+    """Test that multi-line strings are preserved."""
+    content = '''"""
+This is a docstring
+with multiple lines
+"""
+x = 5  # comment
+'''
+    result = strip_comments(content, Path("test.py"))
+    assert "This is a docstring" in result
+    assert "with multiple lines" in result
+    assert "# comment" not in result
+
+
+def test_escaped_quotes_in_strings():
+    """Test handling of escaped quotes."""
+    content = r"""x = "He said \"hello\" # not a comment"
+y = 'It\'s working'  # this is a comment
+"""
+    result = strip_comments(content, Path("test.py"))
+    assert 'He said \\"hello\\" # not a comment' in result
+    assert "# this is a comment" not in result
