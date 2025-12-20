@@ -121,17 +121,28 @@ def _strip_hash_comments(content: str) -> str:
     """Strip # comments from content, preserving strings."""
     lines = []
     for line in content.splitlines():
-        # Simple approach: find # not in strings
+        # Find # not in strings
         in_single = False
         in_double = False
+        escape = False
         result = []
         i = 0
         while i < len(line):
             char = line[i]
 
-            # Handle escape sequences
-            if i > 0 and line[i - 1] == "\\":
+            # If previous character started an escape sequence,
+            # treat this character as escaped and do not change string state.
+            if escape:
                 result.append(char)
+                escape = False
+                i += 1
+                continue
+
+            # Start a new escape sequence when we see an unescaped backslash
+            # inside a string. The next character will be treated as escaped.
+            if char == "\\" and (in_single or in_double):
+                result.append(char)
+                escape = True
                 i += 1
                 continue
 
@@ -159,22 +170,33 @@ def _strip_c_style_comments(content: str) -> str:
     i = 0
     in_single = False
     in_double = False
+    escape = False
 
     while i < len(content):
-        # Handle escape sequences in strings
-        if i > 0 and content[i - 1] == "\\" and (in_single or in_double):
-            result.append(content[i])
+        char = content[i]
+
+        # If previous character started an escape sequence,
+        # treat this character as escaped and do not change string state.
+        if escape:
+            result.append(char)
+            escape = False
             i += 1
             continue
 
-        char = content[i]
+        # Start a new escape sequence when we see an unescaped backslash
+        # inside a string. The next character will be treated as escaped.
+        if char == "\\" and (in_single or in_double):
+            result.append(char)
+            escape = True
+            i += 1
+            continue
 
         # Toggle string states
-        if char == "'" and not in_double and (i == 0 or content[i - 1] != "\\"):
+        if char == "'" and not in_double:
             in_single = not in_single
             result.append(char)
             i += 1
-        elif char == '"' and not in_single and (i == 0 or content[i - 1] != "\\"):
+        elif char == '"' and not in_single:
             in_double = not in_double
             result.append(char)
             i += 1
@@ -192,7 +214,11 @@ def _strip_c_style_comments(content: str) -> str:
                 i += 2
                 # Skip until */
                 while i < len(content):
-                    if i + 1 < len(content) and content[i] == "*" and content[i + 1] == "/":
+                    if (
+                        i + 1 < len(content)
+                        and content[i] == "*"
+                        and content[i + 1] == "/"
+                    ):
                         i += 2
                         break
                     i += 1
@@ -212,22 +238,130 @@ def _strip_html_comments(content: str) -> str:
 
 
 def _strip_css_comments(content: str) -> str:
-    """Strip CSS /* */ comments."""
-    return re.sub(r"/\*.*?\*/", "", content, flags=re.DOTALL)
+    """Strip CSS /* */ comments, preserving strings."""
+    result: list[str] = []
+    i = 0
+    length = len(content)
+    in_single = False
+    in_double = False
+    in_comment = False
+
+    while i < length:
+        ch = content[i]
+        next_ch = content[i + 1] if i + 1 < length else ""
+
+        if in_comment:
+            # Look for end of comment
+            if ch == "*" and next_ch == "/":
+                in_comment = False
+                i += 2
+            else:
+                i += 1
+            continue
+
+        # Handle start of comment (only when not inside a string)
+        if not in_single and not in_double and ch == "/" and next_ch == "*":
+            in_comment = True
+            i += 2
+            continue
+
+        # Handle escape sequences inside strings: keep backslash + next char
+        if (in_single or in_double) and ch == "\\" and i + 1 < length:
+            result.append(ch)
+            result.append(content[i + 1])
+            i += 2
+            continue
+
+        # Toggle string states
+        if ch == "'" and not in_double:
+            in_single = not in_single
+            result.append(ch)
+            i += 1
+            continue
+        if ch == '"' and not in_single:
+            in_double = not in_double
+            result.append(ch)
+            i += 1
+            continue
+
+        # Regular character
+        result.append(ch)
+        i += 1
+
+    return "".join(result)
+
+
+def _strip_line_comment(line: str, marker: str) -> str:
+    """Strip a line comment starting with marker, ignoring markers inside strings."""
+    in_single = False
+    in_double = False
+    escape = False
+    i = 0
+    length = len(line)
+    while i < length:
+        ch = line[i]
+        if escape:
+            # Current character is escaped; skip special handling.
+            escape = False
+        elif ch == "\\":
+            # Start of an escape sequence.
+            escape = True
+        elif ch == "'" and not in_double:
+            # Toggle single-quoted (character) literal.
+            in_single = not in_single
+        elif ch == '"' and not in_single:
+            # Toggle double-quoted string literal.
+            in_double = not in_double
+        elif not in_single and not in_double and line.startswith(marker, i):
+            # Marker found outside of any string/char literal: start of comment.
+            return line[:i].rstrip()
+        i += 1
+    return line
+
+
+def _strip_sql_line_comment(line: str) -> str:
+    """Strip a SQL -- line comment from a single line, preserving string literals."""
+    in_single = False
+    in_double = False
+    i = 0
+    length = len(line)
+    while i < length:
+        ch = line[i]
+        # Handle single-quoted strings and doubled-quote escapes (e.g. 'it''s')
+        if ch == "'" and not in_double:
+            if in_single and i + 1 < length and line[i + 1] == "'":
+                # Escaped single quote inside a single-quoted string
+                i += 2
+                continue
+            in_single = not in_single
+            i += 1
+            continue
+        # Handle double-quoted identifiers/strings
+        # and doubled-quote escapes (e.g. "a""b")
+        if ch == '"' and not in_single:
+            if in_double and i + 1 < length and line[i + 1] == '"':
+                # Escaped double quote inside a double-quoted string
+                i += 2
+                continue
+            in_double = not in_double
+            i += 1
+            continue
+        # Detect start of a line comment when not inside any string literal
+        if not in_single and not in_double and ch == "-" and i + 1 < length:
+            if line[i + 1] == "-":
+                return line[:i].rstrip()
+        i += 1
+    return line
 
 
 def _strip_sql_comments(content: str) -> str:
     """Strip SQL -- and /* */ comments."""
     # Remove /* */ comments
     content = re.sub(r"/\*.*?\*/", "", content, flags=re.DOTALL)
-    # Remove -- comments
+    # Remove -- comments, taking care not to strip inside string literals
     lines = []
     for line in content.splitlines():
-        # Find -- not in strings
-        idx = line.find("--")
-        if idx != -1:
-            line = line[:idx].rstrip()
-        lines.append(line)
+        lines.append(_strip_sql_line_comment(line))
     return "\n".join(lines)
 
 
@@ -235,13 +369,10 @@ def _strip_lua_comments(content: str) -> str:
     """Strip Lua -- and --[[ ]] comments."""
     # Remove --[[ ]] comments
     content = re.sub(r"--\[\[.*?\]\]", "", content, flags=re.DOTALL)
-    # Remove -- comments
+    # Remove -- comments outside of string literals
     lines = []
     for line in content.splitlines():
-        idx = line.find("--")
-        if idx != -1:
-            line = line[:idx].rstrip()
-        lines.append(line)
+        lines.append(_strip_line_comment(line, "--"))
     return "\n".join(lines)
 
 
@@ -249,22 +380,44 @@ def _strip_haskell_comments(content: str) -> str:
     """Strip Haskell -- and {- -} comments."""
     # Remove {- -} comments
     content = re.sub(r"\{-.*?-\}", "", content, flags=re.DOTALL)
-    # Remove -- comments
+    # Remove -- comments outside of string/char literals
     lines = []
     for line in content.splitlines():
-        idx = line.find("--")
-        if idx != -1:
-            line = line[:idx].rstrip()
-        lines.append(line)
+        lines.append(_strip_line_comment(line, "--"))
     return "\n".join(lines)
 
 
 def _strip_lisp_comments(content: str) -> str:
-    """Strip Lisp ; comments."""
+    """Strip Lisp ; comments, preserving string literals."""
     lines = []
     for line in content.splitlines():
-        idx = line.find(";")
-        if idx != -1:
-            line = line[:idx].rstrip()
-        lines.append(line)
+        in_string = False
+        escape = False
+        result: list[str] = []
+        i = 0
+        while i < len(line):
+            char = line[i]
+            # Handle escape sequences
+            if escape:
+                result.append(char)
+                escape = False
+                i += 1
+                continue
+            # Start escape sequence
+            if char == "\\" and in_string:
+                result.append(char)
+                escape = True
+                i += 1
+                continue
+            # Toggle string state on unescaped double quotes
+            if char == '"':
+                in_string = not in_string
+                result.append(char)
+            elif char == ";" and not in_string:
+                # Start of comment outside a string; ignore rest of line
+                break
+            else:
+                result.append(char)
+            i += 1
+        lines.append("".join(result).rstrip())
     return "\n".join(lines)

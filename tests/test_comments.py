@@ -180,12 +180,13 @@ def test_file_with_only_comments():
     """Test file containing only comments."""
     content = """# Comment 1
 # Comment 2
-# Comment 3
-"""
+# Comment 3"""
     result = strip_comments(content, Path("test.py"))
-    # Should have empty lines where comments were
-    lines = result.strip().split("\n")
-    assert all(line == "" for line in lines)
+    # Result should have no comment markers and only whitespace/newlines
+    assert "#" not in result
+    assert "Comment" not in result
+    # Result should be mostly empty (just whitespace/newlines)
+    assert result.strip() == ""
 
 
 def test_multiline_string_preservation():
@@ -222,3 +223,78 @@ const y = 10;"""
     assert "const x = 5;" in result
     assert "This comment" not in result
     assert "const y = 10" not in result
+
+
+def test_sql_string_preservation():
+    """Test SQL comment stripping preserves strings."""
+    content = """SELECT '--not a comment' as text; -- real comment
+SELECT "column" FROM table; -- another comment"""
+    result = strip_comments(content, Path("test.sql"))
+    assert "--not a comment" in result
+    assert "-- real comment" not in result
+    assert "-- another comment" not in result
+
+
+def test_lua_string_preservation():
+    """Test Lua comment stripping preserves strings."""
+    content = """local s = "--not a comment" -- real comment
+local x = 5"""
+    result = strip_comments(content, Path("test.lua"))
+    assert "--not a comment" in result
+    assert "-- real comment" not in result
+
+
+def test_haskell_string_preservation():
+    """Test Haskell comment stripping preserves strings."""
+    content = """s = "--not a comment" -- real comment
+x = 5"""
+    result = strip_comments(content, Path("test.hs"))
+    assert "--not a comment" in result
+    assert "-- real comment" not in result
+
+
+def test_lisp_string_preservation():
+    """Test Lisp comment stripping preserves strings."""
+    content = """(setq s "; not a comment") ; real comment
+(+ 1 2)"""
+    result = strip_comments(content, Path("test.lisp"))
+    assert "; not a comment" in result
+    assert "; real comment" not in result
+
+
+def test_css_string_preservation():
+    """Test CSS comment stripping preserves strings."""
+    content = """.class { content: "/* not a comment */"; } /* real comment */
+.other { color: red; }"""
+    result = strip_comments(content, Path("test.css"))
+    assert "/* not a comment */" in result
+    assert "/* real comment */" not in result
+
+
+def test_escaped_backslash_in_strings():
+    """Test handling of escaped backslashes."""
+    content = r"""x = "\\\\" # comment
+y = "\\" # another comment"""
+    result = strip_comments(content, Path("test.py"))
+    assert r'"\\\\"' in result
+    assert r'"\\"' in result
+    assert "# comment" not in result
+    assert "# another comment" not in result
+
+
+def test_sql_doubled_quotes():
+    """Test SQL with doubled quote escaping."""
+    content = """SELECT 'it''s ok' as text; -- comment
+SELECT "a""b" FROM table;"""
+    result = strip_comments(content, Path("test.sql"))
+    assert "'it''s ok'" in result
+    assert '"a""b"' in result
+    assert "-- comment" not in result
+
+
+def test_css_escaped_quotes():
+    """Test CSS with escaped quotes in strings."""
+    content = """.class { content: "test\\"quote"; } /* comment */"""
+    result = strip_comments(content, Path("test.css"))
+    assert 'test\\"quote' in result
+    assert "/* comment */" not in result

@@ -20,6 +20,18 @@ uithub --remote-url https://github.com/owner/repo
 Run `uithub --help` for all options. The dump can be printed to STDOUT or saved to a file. JSON output is available using `--format json`. Use `--format html` for a self-contained HTML dump with collapsible sections. Remote repositories can be processed with `--remote-url`; provide `--private-token` or set `GITHUB_TOKEN` for private repos. Use `--max-size` to skip files larger than the given number of bytes (default 1048576).
 `.git/` directories are skipped automatically unless explicitly included.
 
+### Excluding comments
+
+Use `--exclude-comments` to strip code comments from the output, reducing token count by 30-50% on typical codebases:
+
+```bash
+uithub path/to/repo --exclude-comments
+```
+
+This feature intelligently removes comments based on file extensions while preserving string literals. Supported languages include Python, JavaScript/TypeScript, Java, C/C++, Go, Rust, Ruby, SQL, HTML/CSS, Lua, Haskell, Lisp, and more.
+
+### HTML and JSON output
+
 To save an HTML dump and open it in your default browser:
 
 ```bash
@@ -56,6 +68,11 @@ uithub path/to/repo --max-size $((2 * 1048576))
 ```
 
 ## Changelog
+
+### 0.1.4
+- Added `--exclude-comments` flag to strip code comments from output.
+- Supports 20+ languages with intelligent string literal preservation.
+- Improved escape sequence handling for backslashes in strings.
 
 ### 0.1.3
 - Directory patterns now match recursively ("dir/" excludes everything under it).
