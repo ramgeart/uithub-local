@@ -191,8 +191,8 @@ def _strip_c_style_comments(content: str) -> str:
             elif char == "/" and i + 1 < len(content) and content[i + 1] == "*":
                 i += 2
                 # Skip until */
-                while i + 1 < len(content):
-                    if content[i] == "*" and content[i + 1] == "/":
+                while i < len(content):
+                    if i + 1 < len(content) and content[i] == "*" and content[i + 1] == "/":
                         i += 2
                         break
                     i += 1

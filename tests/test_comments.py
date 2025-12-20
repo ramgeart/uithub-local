@@ -210,3 +210,15 @@ y = 'It\'s working'  # this is a comment
     result = strip_comments(content, Path("test.py"))
     assert 'He said \\"hello\\" # not a comment' in result
     assert "# this is a comment" not in result
+
+
+def test_unclosed_multiline_comment():
+    """Test handling of unclosed multi-line comments."""
+    content = """const x = 5;
+/* This comment is never closed
+const y = 10;"""
+    result = strip_comments(content, Path("test.js"))
+    # Everything after /* should be removed
+    assert "const x = 5;" in result
+    assert "This comment" not in result
+    assert "const y = 10" not in result
