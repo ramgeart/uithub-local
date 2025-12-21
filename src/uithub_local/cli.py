@@ -7,7 +7,7 @@ from typing import List, cast
 
 import click
 
-from .renderer import render
+from .renderer import render, render_split
 from .walker import DEFAULT_MAX_SIZE, collect_files
 from .downloader import download_repo
 
@@ -43,6 +43,11 @@ from .downloader import download_repo
 )
 @click.option("--max-tokens", type=int, help="Hard cap; truncate largest files first")
 @click.option(
+    "--split",
+    type=int,
+    help="Split output into multiple files, each with approximately N tokens",
+)
+@click.option(
     "--format",
     "fmt",
     type=click.Choice(["text", "json", "html"]),
@@ -76,6 +81,7 @@ def main(
     exclude: List[str],
     max_size: int,
     max_tokens: int | None,
+    split: int | None,
     fmt: str,
     binary_strict: bool,
     exclude_comments: bool,
@@ -88,6 +94,10 @@ def main(
         raise click.UsageError("--remote-url cannot be used with PATH")
     if not remote_url and not path:
         raise click.UsageError("PATH or --remote-url required")
+    if split is not None and split <= 0:
+        raise click.UsageError("--split must be a positive integer")
+    if split and outfile is None:
+        raise click.UsageError("--split requires --outfile to specify output directory")
 
     try:
         if remote_url:
@@ -99,13 +109,23 @@ def main(
                     max_size=max_size,
                     binary_strict=binary_strict,
                 )
-                output = render(
-                    files,
-                    tmp,
-                    max_tokens=max_tokens,
-                    fmt=fmt,
-                    exclude_comments=exclude_comments,
-                )
+                if split:
+                    outputs = render_split(
+                        files,
+                        tmp,
+                        split,
+                        max_tokens=max_tokens,
+                        fmt=fmt,
+                        exclude_comments=exclude_comments,
+                    )
+                else:
+                    outputs = [(None, render(
+                        files,
+                        tmp,
+                        max_tokens=max_tokens,
+                        fmt=fmt,
+                        exclude_comments=exclude_comments,
+                    ))]
         else:
             files = collect_files(
                 cast(Path, path),
@@ -114,21 +134,43 @@ def main(
                 max_size=max_size,
                 binary_strict=binary_strict,
             )
-            output = render(
-                files,
-                cast(Path, path),
-                max_tokens=max_tokens,
-                fmt=fmt,
-                exclude_comments=exclude_comments,
-            )
+            if split:
+                outputs = render_split(
+                    files,
+                    cast(Path, path),
+                    split,
+                    max_tokens=max_tokens,
+                    fmt=fmt,
+                    exclude_comments=exclude_comments,
+                )
+            else:
+                outputs = [(None, render(
+                    files,
+                    cast(Path, path),
+                    max_tokens=max_tokens,
+                    fmt=fmt,
+                    exclude_comments=exclude_comments,
+                ))]
     except Exception as exc:  # pragma: no cover - fatal CLI errors
         click.echo(str(exc), err=True)
         raise SystemExit(1)
 
-    if outfile:
-        outfile.write_text(output, encoding=encoding, errors="replace")
-    if stdout:
-        click.echo(output)
+    # Handle output
+    if split:
+        # Write multiple files
+        base_dir = outfile.parent if outfile else Path(".")
+        for filename, content in outputs:
+            output_path = base_dir / filename
+            output_path.write_text(content, encoding=encoding, errors="replace")
+            if stdout:
+                click.echo(f"Written {output_path}")
+    else:
+        # Single output
+        output = outputs[0][1]
+        if outfile:
+            outfile.write_text(output, encoding=encoding, errors="replace")
+        if stdout:
+            click.echo(output)
 
 
 if __name__ == "__main__":  # pragma: no cover
