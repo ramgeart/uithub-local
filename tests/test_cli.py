@@ -160,3 +160,45 @@ def test_cli_exclude_comments_preserves_strings(tmp_path: Path):
     assert result.exit_code == 0
     assert "# not a comment" in result.output
     assert "# real comment" not in result.output
+
+
+def test_cli_exclude_comma_separated(tmp_path: Path):
+    """Test that --exclude accepts comma-separated patterns."""
+    (tmp_path / "file.html").write_text("html content")
+    (tmp_path / "script.js").write_text("js content")
+    (tmp_path / "readme.md").write_text("md content")
+    (tmp_path / "readme.txt").write_text("txt content")
+    runner = CliRunner()
+    result = runner.invoke(main, [str(tmp_path), "--exclude", "*.html,*.js"])
+    assert result.exit_code == 0
+    assert "file.html" not in result.output
+    assert "script.js" not in result.output
+    assert "readme.md" in result.output
+    assert "readme.txt" in result.output
+
+
+def test_cli_include_comma_separated(tmp_path: Path):
+    """Test that --include accepts comma-separated patterns."""
+    (tmp_path / "file.py").write_text("py content")
+    (tmp_path / "script.js").write_text("js content")
+    (tmp_path / "readme.md").write_text("md content")
+    runner = CliRunner()
+    result = runner.invoke(main, [str(tmp_path), "--include", "*.py,*.js"])
+    assert result.exit_code == 0
+    assert "file.py" in result.output
+    assert "script.js" in result.output
+    assert "readme.md" not in result.output
+
+
+def test_cli_comma_separated_with_spaces(tmp_path: Path):
+    """Test that comma-separated patterns handle spaces correctly."""
+    (tmp_path / "file.html").write_text("html content")
+    (tmp_path / "script.js").write_text("js content")
+    (tmp_path / "readme.txt").write_text("txt content")
+    runner = CliRunner()
+    result = runner.invoke(main, [str(tmp_path), "--exclude", "*.html, *.js"])
+    assert result.exit_code == 0
+    assert "file.html" not in result.output
+    assert "script.js" not in result.output
+    assert "readme.txt" in result.output
+
