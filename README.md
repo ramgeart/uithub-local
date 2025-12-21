@@ -38,7 +38,7 @@ Use `--split N` to divide output into multiple files, each with approximately N 
 uithub path/to/repo --split 30000 --outfile output.txt
 ```
 
-This creates files named `<reponame>_1.txt`, `<reponame>_2.txt`, etc., each containing up to 30,000 tokens. The `--split` option works with all formats (text, JSON, HTML) and requires `--outfile` to specify the output directory.
+This creates files named `<reponame>_1.txt`, `<reponame>_2.txt`, etc., each containing up to 30,000 tokens. The `--split` option works with all formats (text, JSON, HTML) and requires `--outfile` so it can determine the output directory from the provided file path.
 
 ### HTML and JSON output
 

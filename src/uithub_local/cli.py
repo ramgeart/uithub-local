@@ -97,7 +97,7 @@ def main(
     if split is not None and split <= 0:
         raise click.UsageError("--split must be a positive integer")
     if split and outfile is None:
-        raise click.UsageError("--split requires --outfile to specify output directory")
+        raise click.UsageError("--split requires --outfile")
 
     try:
         if remote_url:
@@ -168,7 +168,7 @@ def main(
     # Handle output
     if split:
         # Write multiple files
-        base_dir = outfile.parent if outfile else Path(".")
+        base_dir = cast(Path, outfile).parent
         for filename, content in outputs:
             output_path = base_dir / filename
             output_path.write_text(content, encoding=encoding, errors="replace")

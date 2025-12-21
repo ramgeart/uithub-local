@@ -3,7 +3,6 @@
 from pathlib import Path
 
 from click.testing import CliRunner
-import pytest
 
 from uithub_local.cli import main
 from uithub_local.renderer import render_split
