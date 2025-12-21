@@ -119,13 +119,18 @@ def main(
                         exclude_comments=exclude_comments,
                     )
                 else:
-                    outputs = [(None, render(
-                        files,
-                        tmp,
-                        max_tokens=max_tokens,
-                        fmt=fmt,
-                        exclude_comments=exclude_comments,
-                    ))]
+                    outputs = [
+                        (
+                            None,
+                            render(
+                                files,
+                                tmp,
+                                max_tokens=max_tokens,
+                                fmt=fmt,
+                                exclude_comments=exclude_comments,
+                            ),
+                        )
+                    ]
         else:
             files = collect_files(
                 cast(Path, path),
@@ -144,13 +149,18 @@ def main(
                     exclude_comments=exclude_comments,
                 )
             else:
-                outputs = [(None, render(
-                    files,
-                    cast(Path, path),
-                    max_tokens=max_tokens,
-                    fmt=fmt,
-                    exclude_comments=exclude_comments,
-                ))]
+                outputs = [
+                    (
+                        None,
+                        render(
+                            files,
+                            cast(Path, path),
+                            max_tokens=max_tokens,
+                            fmt=fmt,
+                            exclude_comments=exclude_comments,
+                        ),
+                    )
+                ]
     except Exception as exc:  # pragma: no cover - fatal CLI errors
         click.echo(str(exc), err=True)
         raise SystemExit(1)

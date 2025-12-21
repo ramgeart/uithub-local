@@ -58,33 +58,35 @@ class Dump:
         """Split file_dumps into chunks, each with approximately split_tokens tokens."""
         if split_tokens <= 0:
             return [self.file_dumps]
-        
+
         chunks: List[List[FileDump]] = []
         current_chunk: List[FileDump] = []
         current_tokens = 0
-        
+
         for fd in self.file_dumps:
-            # If adding this file would exceed the limit and we already have files in the chunk
+            # If adding this file would exceed the limit and we already
+            # have files in the chunk
             if current_tokens + fd.tokens > split_tokens and current_chunk:
                 chunks.append(current_chunk)
                 current_chunk = []
                 current_tokens = 0
-            
+
             current_chunk.append(fd)
             current_tokens += fd.tokens
-        
+
         # Add the last chunk if it has any files
         if current_chunk:
             chunks.append(current_chunk)
-        
+
         return chunks if chunks else [[]]
 
     def as_text(self, repo_name: str, file_dumps: List[FileDump] | None = None) -> str:
         """Render as text format.
-        
+
         Args:
             repo_name: Name of the repository.
-            file_dumps: Optional list of FileDump objects. If None, uses self.file_dumps.
+            file_dumps: Optional list of FileDump objects.
+                If None, uses self.file_dumps.
         """
         if file_dumps is None:
             file_dumps = self.file_dumps
@@ -100,10 +102,11 @@ class Dump:
 
     def as_json(self, repo_name: str, file_dumps: List[FileDump] | None = None) -> str:
         """Render as JSON format.
-        
+
         Args:
             repo_name: Name of the repository.
-            file_dumps: Optional list of FileDump objects. If None, uses self.file_dumps.
+            file_dumps: Optional list of FileDump objects.
+                If None, uses self.file_dumps.
         """
         if file_dumps is None:
             file_dumps = self.file_dumps
@@ -125,10 +128,11 @@ class Dump:
 
     def as_html(self, repo_name: str, file_dumps: List[FileDump] | None = None) -> str:
         """Render as HTML format.
-        
+
         Args:
             repo_name: Name of the repository.
-            file_dumps: Optional list of FileDump objects. If None, uses self.file_dumps.
+            file_dumps: Optional list of FileDump objects.
+                If None, uses self.file_dumps.
         """
         if file_dumps is None:
             file_dumps = self.file_dumps
@@ -296,7 +300,7 @@ def render_split(
     exclude_comments: bool = False,
 ) -> List[Tuple[str, str]]:
     """Render repository into multiple outputs split by token count.
-    
+
     Args:
         files: List of FileInfo objects to render.
         root: Root path of the repository.
@@ -304,20 +308,20 @@ def render_split(
         max_tokens: Optional hard cap on total tokens (applied before splitting).
         fmt: Output format ("text", "json", or "html").
         exclude_comments: Whether to strip code comments.
-    
+
     Returns:
         List of (filename, content) tuples for each chunk.
     """
     dump = Dump(files, root, max_tokens, exclude_comments=exclude_comments)
     resolved = root.resolve()
     repo_name = resolved.name or resolved.parent.name
-    
+
     # Get file extension based on format
     ext = {"text": "txt", "json": "json", "html": "html"}.get(fmt, "txt")
-    
+
     # Split into chunks
     chunks = dump.split_by_tokens(split_tokens)
-    
+
     # Generate outputs for each chunk
     outputs: List[Tuple[str, str]] = []
     for idx, chunk in enumerate(chunks, start=1):
@@ -329,5 +333,5 @@ def render_split(
         else:
             content = dump.as_text(repo_name, chunk)
         outputs.append((filename, content))
-    
+
     return outputs
