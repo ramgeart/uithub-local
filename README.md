@@ -13,12 +13,18 @@ pip install .
 # trailing slash means recursive
 uithub path/to/repo --include "*.py" --exclude "tests/"
 uithub --remote-url https://github.com/owner/repo
+
+# Comma-separated patterns (new in 0.1.6)
+uithub path/to/repo --exclude "*.html,*.js,*.css"
+uithub path/to/repo --include "*.py,*.js,*.md"
 ```
 
 ## Usage
 
 Run `uithub --help` for all options. The dump can be printed to STDOUT or saved to a file. JSON output is available using `--format json`. Use `--format html` for a self-contained HTML dump with collapsible sections. Remote repositories can be processed with `--remote-url`; provide `--private-token` or set `GITHUB_TOKEN` for private repos. Use `--max-size` to skip files larger than the given number of bytes (default 1048576).
 `.git/` directories are skipped automatically unless explicitly included.
+
+Both `--include` and `--exclude` options support comma-separated patterns for convenience. For example, `--exclude "*.html,*.js"` is equivalent to `--exclude "*.html" --exclude "*.js"`.
 
 ### Excluding comments
 
@@ -78,6 +84,10 @@ uithub path/to/repo --max-size $((2 * 1048576))
 ```
 
 ## Changelog
+
+### 0.1.6
+- Added support for comma-separated patterns in `--include` and `--exclude` options.
+- Example: `--exclude "*.html,*.js,*.css"` is now equivalent to multiple `--exclude` flags.
 
 ### 0.1.5
 - Added `--split N` option to divide output into multiple files of N tokens each.

@@ -12,6 +12,20 @@ from .walker import DEFAULT_MAX_SIZE, collect_files
 from .downloader import download_repo
 
 
+def _expand_comma_separated(patterns: List[str]) -> List[str]:
+    """Expand comma-separated patterns into individual patterns.
+    
+    Example:
+        ["*.py", "*.html,*.js"] -> ["*.py", "*.html", "*.js"]
+    """
+    expanded = []
+    for pattern in patterns:
+        # Split by comma and strip whitespace from each part
+        parts = [p.strip() for p in pattern.split(",")]
+        expanded.extend(parts)
+    return expanded
+
+
 @click.command(context_settings={"help_option_names": ["-h", "--help"]})
 @click.argument(
     "path",
@@ -24,13 +38,13 @@ from .downloader import download_repo
     "--include",
     multiple=True,
     default=["*"],
-    help=("Glob(s) to include. Trailing '/' or '\\' expands recursively."),
+    help=("Glob(s) to include. Supports comma-separated patterns. Trailing '/' or '\\' expands recursively."),
 )
 @click.option(
     "--exclude",
     multiple=True,
     help=(
-        "Glob(s) to exclude. Trailing '/' or '\\' expands recursively. "
+        "Glob(s) to exclude. Supports comma-separated patterns. Trailing '/' or '\\' expands recursively. "
         "'.git/' is excluded by default."
     ),
 )
@@ -98,6 +112,10 @@ def main(
         raise click.UsageError("--split must be a positive integer")
     if split and outfile is None:
         raise click.UsageError("--split requires --outfile")
+
+    # Expand comma-separated patterns
+    include = _expand_comma_separated(list(include))
+    exclude = _expand_comma_separated(list(exclude))
 
     try:
         if remote_url:
