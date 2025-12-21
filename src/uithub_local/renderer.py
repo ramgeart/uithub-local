@@ -16,14 +16,16 @@ from .walker import FileInfo
 class FileDump:
     """A file plus its loaded contents and token count."""
 
-    def __init__(self, info: FileInfo, root: Path) -> None:
+    def __init__(
+        self, info: FileInfo, root: Path, exclude_comments: bool = False
+    ) -> None:
         self.path = info.path
         self.full_path = root / info.path
         self.size = info.size
         self.tokens = 0
         self.content = ""
         try:
-            self.content = load_text(self.full_path)
+            self.content = load_text(self.full_path, exclude_comments=exclude_comments)
             self.tokens = approximate_tokens(self.content)
         except Exception:
             self.content = ""
@@ -36,9 +38,12 @@ class Dump:
         files: List[FileInfo],
         root: Path,
         max_tokens: int | None = None,
+        exclude_comments: bool = False,
     ) -> None:
         self.root = root
-        self.file_dumps: List[FileDump] = [FileDump(info, root) for info in files]
+        self.file_dumps: List[FileDump] = [
+            FileDump(info, root, exclude_comments=exclude_comments) for info in files
+        ]
         self.total_tokens = sum(fd.tokens for fd in self.file_dumps)
         if max_tokens is not None and self.total_tokens > max_tokens:
             self._truncate(max_tokens)
@@ -217,8 +222,9 @@ def render(
     *,
     max_tokens: int | None = None,
     fmt: str = "text",
+    exclude_comments: bool = False,
 ) -> str:
-    dump = Dump(files, root, max_tokens)
+    dump = Dump(files, root, max_tokens, exclude_comments=exclude_comments)
     resolved = root.resolve()
     repo_name = resolved.name or resolved.parent.name
     if fmt == "json":

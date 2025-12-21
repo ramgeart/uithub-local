@@ -53,6 +53,12 @@ from .downloader import download_repo
     default=True,
     help="Use strict binary detection",
 )
+@click.option(
+    "--exclude-comments",
+    is_flag=True,
+    default=False,
+    help="Strip code comments from output",
+)
 @click.option("--stdout/--no-stdout", default=True, help="Print dump to STDOUT")
 @click.option("--outfile", type=click.Path(path_type=Path), help="Write dump to file")
 @click.option(
@@ -72,6 +78,7 @@ def main(
     max_tokens: int | None,
     fmt: str,
     binary_strict: bool,
+    exclude_comments: bool,
     stdout: bool,
     outfile: Path | None,
     encoding: str,
@@ -92,7 +99,13 @@ def main(
                     max_size=max_size,
                     binary_strict=binary_strict,
                 )
-                output = render(files, tmp, max_tokens=max_tokens, fmt=fmt)
+                output = render(
+                    files,
+                    tmp,
+                    max_tokens=max_tokens,
+                    fmt=fmt,
+                    exclude_comments=exclude_comments,
+                )
         else:
             files = collect_files(
                 cast(Path, path),
@@ -101,7 +114,13 @@ def main(
                 max_size=max_size,
                 binary_strict=binary_strict,
             )
-            output = render(files, cast(Path, path), max_tokens=max_tokens, fmt=fmt)
+            output = render(
+                files,
+                cast(Path, path),
+                max_tokens=max_tokens,
+                fmt=fmt,
+                exclude_comments=exclude_comments,
+            )
     except Exception as exc:  # pragma: no cover - fatal CLI errors
         click.echo(str(exc), err=True)
         raise SystemExit(1)

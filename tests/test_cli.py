@@ -137,3 +137,26 @@ def test_cli_auto_excludes_git(tmp_path: Path):
     result = runner.invoke(main, [str(tmp_path)])
     assert result.exit_code == 0
     assert ".git/config" not in result.output
+
+
+def test_cli_exclude_comments(tmp_path: Path):
+    (tmp_path / "script.py").write_text("# This is a comment\nx = 5  # inline\ny = 10")
+    (tmp_path / "code.js").write_text("// Comment\nconst x = 5; // inline")
+    runner = CliRunner()
+    result = runner.invoke(main, [str(tmp_path), "--exclude-comments"])
+    assert result.exit_code == 0
+    assert "# This is a comment" not in result.output
+    assert "# inline" not in result.output
+    assert "// Comment" not in result.output
+    assert "// inline" not in result.output
+    assert "x = 5" in result.output
+    assert "const x = 5;" in result.output
+
+
+def test_cli_exclude_comments_preserves_strings(tmp_path: Path):
+    (tmp_path / "test.py").write_text('x = "# not a comment"  # real comment')
+    runner = CliRunner()
+    result = runner.invoke(main, [str(tmp_path), "--exclude-comments"])
+    assert result.exit_code == 0
+    assert "# not a comment" in result.output
+    assert "# real comment" not in result.output
