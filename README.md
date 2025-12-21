@@ -30,6 +30,16 @@ uithub path/to/repo --exclude-comments
 
 This feature intelligently removes comments based on file extensions while preserving string literals. Supported languages include Python, JavaScript/TypeScript, Java, C/C++, Go, Rust, Ruby, SQL, HTML/CSS, Lua, Haskell, Lisp, and more.
 
+### Splitting large outputs
+
+Use `--split N` to divide output into multiple files, each with approximately N tokens. This is useful when working with LLMs that have context window limits:
+
+```bash
+uithub path/to/repo --split 30000 --outfile output.txt
+```
+
+This creates files named `<reponame>_1.txt`, `<reponame>_2.txt`, etc., each containing up to 30,000 tokens. The `--split` option works with all formats (text, JSON, HTML) and requires `--outfile` to specify the output directory.
+
 ### HTML and JSON output
 
 To save an HTML dump and open it in your default browser:
@@ -68,6 +78,11 @@ uithub path/to/repo --max-size $((2 * 1048576))
 ```
 
 ## Changelog
+
+### 0.1.5
+- Added `--split N` option to divide output into multiple files of N tokens each.
+- Split works with all formats (text, JSON, HTML).
+- Useful for working with LLM context window limits.
 
 ### 0.1.4
 - Added `--exclude-comments` flag to strip code comments from output.
