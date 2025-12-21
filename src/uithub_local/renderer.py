@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 import html
 
 from .loader import load_text
@@ -54,33 +54,89 @@ class Dump:
             victim = self.file_dumps.pop(0)
             self.total_tokens -= victim.tokens
 
-    def as_text(self, repo_name: str) -> str:
-        timestamp = datetime.now(timezone.utc).isoformat()
-        lines = [f"# Uithub-local dump – {repo_name} – {timestamp}"]
-        lines.append(f"# ≈ {self.total_tokens} tokens")
+    def split_by_tokens(self, split_tokens: int) -> List[List[FileDump]]:
+        """Split file_dumps into chunks, each with approximately split_tokens tokens."""
+        if split_tokens <= 0:
+            return [self.file_dumps]
+
+        chunks: List[List[FileDump]] = []
+        current_chunk: List[FileDump] = []
+        current_tokens = 0
+
         for fd in self.file_dumps:
+            # If adding this file would exceed the limit and we already
+            # have files in the chunk
+            if current_tokens + fd.tokens > split_tokens and current_chunk:
+                chunks.append(current_chunk)
+                current_chunk = []
+                current_tokens = 0
+
+            current_chunk.append(fd)
+            current_tokens += fd.tokens
+
+        # Add the last chunk if it has any files
+        if current_chunk:
+            chunks.append(current_chunk)
+
+        return chunks if chunks else [[]]
+
+    def as_text(self, repo_name: str, file_dumps: List[FileDump] | None = None) -> str:
+        """Render as text format.
+
+        Args:
+            repo_name: Name of the repository.
+            file_dumps: Optional list of FileDump objects.
+                If None, uses self.file_dumps.
+        """
+        if file_dumps is None:
+            file_dumps = self.file_dumps
+        timestamp = datetime.now(timezone.utc).isoformat()
+        chunk_tokens = sum(fd.tokens for fd in file_dumps)
+        lines = [f"# Uithub-local dump – {repo_name} – {timestamp}"]
+        lines.append(f"# ≈ {chunk_tokens} tokens")
+        for fd in file_dumps:
             lines.append(f"\n### {fd.path.as_posix()}")
             lines.append(fd.content)
         lines.append("")
         return "\n".join(lines)
 
-    def as_json(self, repo_name: str) -> str:
+    def as_json(self, repo_name: str, file_dumps: List[FileDump] | None = None) -> str:
+        """Render as JSON format.
+
+        Args:
+            repo_name: Name of the repository.
+            file_dumps: Optional list of FileDump objects.
+                If None, uses self.file_dumps.
+        """
+        if file_dumps is None:
+            file_dumps = self.file_dumps
+        chunk_tokens = sum(fd.tokens for fd in file_dumps)
         obj = {
             "repo": repo_name,
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "total_tokens": self.total_tokens,
+            "total_tokens": chunk_tokens,
             "files": [
                 {
                     "path": fd.path.as_posix(),
                     "contents": fd.content,
                     "tokens": fd.tokens,
                 }
-                for fd in self.file_dumps
+                for fd in file_dumps
             ],
         }
         return json.dumps(obj, indent=2)
 
-    def as_html(self, repo_name: str) -> str:
+    def as_html(self, repo_name: str, file_dumps: List[FileDump] | None = None) -> str:
+        """Render as HTML format.
+
+        Args:
+            repo_name: Name of the repository.
+            file_dumps: Optional list of FileDump objects.
+                If None, uses self.file_dumps.
+        """
+        if file_dumps is None:
+            file_dumps = self.file_dumps
+        chunk_tokens = sum(fd.tokens for fd in file_dumps)
         timestamp = datetime.now(timezone.utc).isoformat()
         style = """
         <style>
@@ -194,10 +250,10 @@ class Dump:
             "<div class='container'>",
             "<div class='header-card'>",
             f"<h1>Uithub-local dump – {repo_name}</h1>",
-            f"<p>{timestamp} \u00b7 \u2248 {self.total_tokens} tokens</p>",
+            f"<p>{timestamp} \u00b7 \u2248 {chunk_tokens} tokens</p>",
             "</div>",
         ]
-        for fd in self.file_dumps:
+        for fd in file_dumps:
             path = html.escape(fd.path.as_posix())
             lines.append("<details class='file-card'>")
             lines.append(
@@ -232,3 +288,50 @@ def render(
     if fmt == "html":
         return dump.as_html(repo_name)
     return dump.as_text(repo_name)
+
+
+def render_split(
+    files: List[FileInfo],
+    root: Path,
+    split_tokens: int,
+    *,
+    max_tokens: int | None = None,
+    fmt: str = "text",
+    exclude_comments: bool = False,
+) -> List[Tuple[str, str]]:
+    """Render repository into multiple outputs split by token count.
+
+    Args:
+        files: List of FileInfo objects to render.
+        root: Root path of the repository.
+        split_tokens: Maximum tokens per output chunk.
+        max_tokens: Optional hard cap on total tokens (applied before splitting).
+        fmt: Output format ("text", "json", or "html").
+        exclude_comments: Whether to strip code comments.
+
+    Returns:
+        List of (filename, content) tuples for each chunk.
+    """
+    dump = Dump(files, root, max_tokens, exclude_comments=exclude_comments)
+    resolved = root.resolve()
+    repo_name = resolved.name or resolved.parent.name
+
+    # Get file extension based on format
+    ext = {"text": "txt", "json": "json", "html": "html"}.get(fmt, "txt")
+
+    # Split into chunks
+    chunks = dump.split_by_tokens(split_tokens)
+
+    # Generate outputs for each chunk
+    outputs: List[Tuple[str, str]] = []
+    for idx, chunk in enumerate(chunks, start=1):
+        filename = f"{repo_name}_{idx}.{ext}"
+        if fmt == "json":
+            content = dump.as_json(repo_name, chunk)
+        elif fmt == "html":
+            content = dump.as_html(repo_name, chunk)
+        else:
+            content = dump.as_text(repo_name, chunk)
+        outputs.append((filename, content))
+
+    return outputs
