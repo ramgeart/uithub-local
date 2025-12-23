@@ -86,13 +86,18 @@ def collect_files(
         gitignore_spec = _load_gitignore_spec(root)
 
     def _expand(pattern: str) -> str:
-        # normalize platform separators
-        pat = pattern.replace("\\", "/").rstrip("/")
+        # normalize platform separators and leading prefixes
+        pat = pattern.replace("\\", "/")
+        if pat.startswith("./"):
+            pat = pat[2:]
+        elif pat.startswith("/"):
+            pat = pat[1:]
+        pat = pat.rstrip("/")
         if pat in {"*", "**"}:
-            return pat
+            return "**"
         if (root / pat).is_dir():
             return f"{pat}/**"  # recurse
-        return pattern
+        return pat
 
     include = [_expand(p) for p in include]
     exclude = [_expand(p) for p in exclude]

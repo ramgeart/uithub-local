@@ -129,6 +129,30 @@ def test_cli_exclude_tests(tmp_path: Path):
     assert "b.txt" in result.output
 
 
+def test_cli_exclude_with_dot_slash(tmp_path: Path):
+    skip = tmp_path / "skip"
+    skip.mkdir()
+    (skip / "a.txt").write_text("x")
+    (tmp_path / "keep.txt").write_text("y")
+    runner = CliRunner()
+    result = runner.invoke(main, [str(tmp_path), "--exclude", "./skip"])
+    assert result.exit_code == 0
+    assert "skip/a.txt" not in result.output
+    assert "keep.txt" in result.output
+
+
+def test_cli_include_with_dot_slash(tmp_path: Path):
+    nested = tmp_path / "nested"
+    nested.mkdir()
+    (nested / "deep.txt").write_text("z")
+    (tmp_path / "ignore.txt").write_text("q")
+    runner = CliRunner()
+    result = runner.invoke(main, [str(tmp_path), "--include", "./nested"])
+    assert result.exit_code == 0
+    assert "nested/deep.txt" in result.output
+    assert "ignore.txt" not in result.output
+
+
 def test_cli_auto_excludes_git(tmp_path: Path):
     (tmp_path / ".git").mkdir()
     (tmp_path / ".git" / "config").write_text("x")
@@ -288,4 +312,3 @@ def test_cli_requires_path_source():
     result = runner.invoke(main, [])
     assert result.exit_code == 2
     assert "One of PATH, --local-path, or --remote-url is required" in result.output
-
