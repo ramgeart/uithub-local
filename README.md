@@ -26,6 +26,18 @@ Run `uithub --help` for all options. The dump can be printed to STDOUT or saved 
 
 Both `--include` and `--exclude` options support comma-separated patterns for convenience. For example, `--exclude "*.html,*.js"` is equivalent to `--exclude "*.html" --exclude "*.js"`.
 
+### Respecting .gitignore
+
+By default, uithub respects `.gitignore` rules and excludes files matching patterns in the `.gitignore` file. This helps exclude common build artifacts, dependencies, and temporary files:
+
+```bash
+# Default behavior: respects .gitignore
+uithub path/to/repo
+
+# Disable .gitignore: include all files
+uithub path/to/repo --not-ignore
+```
+
 ### Excluding comments
 
 Use `--exclude-comments` to strip code comments from the output, reducing token count by 30-50% on typical codebases:
@@ -84,6 +96,10 @@ uithub path/to/repo --max-size $((2 * 1048576))
 ```
 
 ## Changelog
+
+### 0.1.7
+- Added `.gitignore` support: files matching patterns in `.gitignore` are now excluded by default.
+- Added `--not-ignore` flag to disable `.gitignore` processing and include all files.
 
 ### 0.1.6
 - Added support for comma-separated patterns in `--include` and `--exclude` options.
