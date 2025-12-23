@@ -26,7 +26,7 @@ def dump_repo(
             value is not used by ``dump_repo`` itself.
         **cli_kwargs: Extra options matching the CLI such as ``include``,
             ``exclude``, ``max_size``, ``max_tokens``, ``binary_strict``,
-            ``exclude_comments`` and ``private_token``.
+            ``exclude_comments``, ``respect_gitignore`` and ``private_token``.
 
     Returns:
         The rendered dump.
@@ -38,6 +38,7 @@ def dump_repo(
     max_tokens = cli_kwargs.get("max_tokens")
     binary_strict = cli_kwargs.get("binary_strict", True)
     exclude_comments = cli_kwargs.get("exclude_comments", False)
+    respect_gitignore = cli_kwargs.get("respect_gitignore", True)
     private_token = cli_kwargs.get("private_token")
 
     path = Path(path_or_url)
@@ -48,6 +49,7 @@ def dump_repo(
             exclude,
             max_size=max_size,
             binary_strict=binary_strict,
+            respect_gitignore=respect_gitignore,
         )
         return render(
             files,
@@ -65,6 +67,7 @@ def dump_repo(
             exclude,
             max_size=max_size,
             binary_strict=binary_strict,
+            respect_gitignore=respect_gitignore,
         )
         return render(
             files,

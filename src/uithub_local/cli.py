@@ -78,6 +78,12 @@ def _expand_comma_separated(patterns: List[str]) -> List[str]:
     default=False,
     help="Strip code comments from output",
 )
+@click.option(
+    "--not-ignore",
+    is_flag=True,
+    default=False,
+    help="Do not respect .gitignore rules (default: respect .gitignore)",
+)
 @click.option("--stdout/--no-stdout", default=True, help="Print dump to STDOUT")
 @click.option("--outfile", type=click.Path(path_type=Path), help="Write dump to file")
 @click.option(
@@ -99,6 +105,7 @@ def main(
     fmt: str,
     binary_strict: bool,
     exclude_comments: bool,
+    not_ignore: bool,
     stdout: bool,
     outfile: Path | None,
     encoding: str,
@@ -126,6 +133,7 @@ def main(
                     exclude,
                     max_size=max_size,
                     binary_strict=binary_strict,
+                    respect_gitignore=not not_ignore,
                 )
                 if split:
                     outputs = render_split(
@@ -156,6 +164,7 @@ def main(
                 exclude,
                 max_size=max_size,
                 binary_strict=binary_strict,
+                respect_gitignore=not not_ignore,
             )
             if split:
                 outputs = render_split(

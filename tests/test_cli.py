@@ -202,3 +202,27 @@ def test_cli_comma_separated_with_spaces(tmp_path: Path):
     assert "script.js" not in result.output
     assert "readme.txt" in result.output
 
+
+def test_cli_respects_gitignore(tmp_path: Path):
+    """Test that CLI respects .gitignore by default."""
+    (tmp_path / ".gitignore").write_text("*.log\n")
+    (tmp_path / "app.log").write_text("log data")
+    (tmp_path / "readme.txt").write_text("readme")
+    runner = CliRunner()
+    result = runner.invoke(main, [str(tmp_path)])
+    assert result.exit_code == 0
+    assert "app.log" not in result.output
+    assert "readme.txt" in result.output
+
+
+def test_cli_not_ignore_flag(tmp_path: Path):
+    """Test that --not-ignore flag disables .gitignore."""
+    (tmp_path / ".gitignore").write_text("*.log\n")
+    (tmp_path / "app.log").write_text("log data")
+    (tmp_path / "readme.txt").write_text("readme")
+    runner = CliRunner()
+    result = runner.invoke(main, [str(tmp_path), "--not-ignore"])
+    assert result.exit_code == 0
+    assert "app.log" in result.output
+    assert "readme.txt" in result.output
+
