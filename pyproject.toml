@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "uithub-local"
-version = "0.1.5"
+version = "0.1.7"
 description = "Local Uithub CLI to flatten Git repositories into text dumps."
 authors = [{name = "Codex", email = "codex@example.com"}]
 license = {text = "MIT"}
@@ -14,6 +14,7 @@ dependencies = [
     "click>=8",
     "tiktoken>=0.5",
     "requests>=2",
+    "pathspec>=0.11",
 ]
 classifiers = [
     "License :: OSI Approved :: MIT License",

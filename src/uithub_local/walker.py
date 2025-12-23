@@ -8,9 +8,36 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List
 
+import pathspec
+
 from .utils import is_binary_path
 
 DEFAULT_MAX_SIZE = 1_048_576
+
+
+def _load_gitignore_spec(root: Path) -> pathspec.PathSpec | None:
+    """Load and parse .gitignore file from the root directory.
+    
+    Parameters
+    ----------
+    root:
+        Root directory to look for .gitignore file.
+        
+    Returns
+    -------
+    pathspec.PathSpec or None:
+        A PathSpec object if .gitignore exists, None otherwise.
+    """
+    gitignore_path = root / ".gitignore"
+    if not gitignore_path.exists():
+        return None
+    
+    try:
+        with open(gitignore_path, "r", encoding="utf-8", errors="replace") as f:
+            lines = f.read().splitlines()
+        return pathspec.PathSpec.from_lines("gitwildmatch", lines)
+    except (OSError, UnicodeDecodeError):
+        return None
 
 
 @dataclass
@@ -29,6 +56,7 @@ def collect_files(
     max_size: int = DEFAULT_MAX_SIZE,
     *,
     binary_strict: bool = True,
+    respect_gitignore: bool = True,
 ) -> List[FileInfo]:
     """Return list of readable, non-binary files under *path*.
 
@@ -44,11 +72,18 @@ def collect_files(
         Skip files larger than this number of bytes.
     binary_strict:
         Use strict binary detection.
+    respect_gitignore:
+        If True, respect .gitignore rules (default True).
     """
     include = list(include or ["*"])
     exclude = list(exclude or [])
     files: List[FileInfo] = []
     root = Path(path)
+    
+    # Load .gitignore if respect_gitignore is True
+    gitignore_spec = None
+    if respect_gitignore:
+        gitignore_spec = _load_gitignore_spec(root)
 
     def _expand(pattern: str) -> str:
         # normalize platform separators
@@ -76,6 +111,9 @@ def collect_files(
             if not any(fnmatch.fnmatch(rel_path, pattern) for pattern in include):
                 continue
             if any(fnmatch.fnmatch(rel_path, pattern) for pattern in exclude):
+                continue
+            # Check gitignore rules
+            if gitignore_spec and gitignore_spec.match_file(rel_path):
                 continue
             if is_binary_path(file, strict=binary_strict):
                 continue
