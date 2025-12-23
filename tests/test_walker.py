@@ -85,6 +85,32 @@ def test_collect_files_exclude_leading_dot_slash(tmp_path):
     assert not any(n.startswith("skip/") for n in names)
 
 
+def test_collect_files_include_leading_slash(tmp_path):
+    from uithub_local.walker import collect_files
+
+    nested = tmp_path / "nested"
+    nested.mkdir()
+    (nested / "deep.txt").write_text("data")
+    (tmp_path / "root.txt").write_text("root")
+
+    names = {f.path.as_posix() for f in collect_files(tmp_path, ["/nested"], [])}
+    assert "nested/deep.txt" in names
+    assert "root.txt" not in names
+
+
+def test_collect_files_exclude_leading_slash(tmp_path):
+    from uithub_local.walker import collect_files
+
+    skip = tmp_path / "skip"
+    skip.mkdir()
+    (skip / "omit.txt").write_text("x")
+    (tmp_path / "keep.txt").write_text("y")
+
+    names = {f.path.as_posix() for f in collect_files(tmp_path, ["*"], ["/skip"])}
+    assert "keep.txt" in names
+    assert not any(n.startswith("skip/") for n in names)
+
+
 def test_collect_files_respects_gitignore(tmp_path):
     """Test that .gitignore rules are respected by default."""
     from uithub_local.walker import collect_files

@@ -91,9 +91,9 @@ def collect_files(
         if pat.startswith("./"):
             pat = pat[2:]
         elif pat.startswith("/"):
-            pat = pat[1:]
+            pat = pat.lstrip("/")
         pat = pat.rstrip("/")
-        if pat in {"*", "**"}:
+        if not pat or pat in {"*", "**"}:
             return "**"
         if (root / pat).is_dir():
             return f"{pat}/**"  # recurse
