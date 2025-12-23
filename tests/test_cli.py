@@ -226,3 +226,66 @@ def test_cli_not_ignore_flag(tmp_path: Path):
     assert "app.log" in result.output
     assert "readme.txt" in result.output
 
+
+def test_cli_local_path_option(tmp_path: Path):
+    """Test that --local-path option works."""
+    (tmp_path / "file.txt").write_text("content")
+    runner = CliRunner()
+    result = runner.invoke(main, ["--local-path", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "file.txt" in result.output
+    assert "content" in result.output
+
+
+def test_cli_local_path_with_subdirs(tmp_path: Path):
+    """Test that --local-path traverses subdirectories."""
+    (tmp_path / "root.txt").write_text("root")
+    subdir = tmp_path / "subdir"
+    subdir.mkdir()
+    (subdir / "nested.txt").write_text("nested")
+    runner = CliRunner()
+    result = runner.invoke(main, ["--local-path", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "root.txt" in result.output
+    assert "subdir/nested.txt" in result.output
+    assert "nested" in result.output
+
+
+def test_cli_local_path_mutually_exclusive_with_path(tmp_path: Path):
+    """Test that PATH and --local-path cannot be used together."""
+    (tmp_path / "file.txt").write_text("content")
+    runner = CliRunner()
+    result = runner.invoke(main, [str(tmp_path), "--local-path", str(tmp_path)])
+    assert result.exit_code == 2
+    assert "Only one of PATH, --local-path, or --remote-url can be used" in result.output
+
+
+def test_cli_local_path_mutually_exclusive_with_remote(tmp_path: Path):
+    """Test that --local-path and --remote-url cannot be used together."""
+    (tmp_path / "file.txt").write_text("content")
+    runner = CliRunner()
+    result = runner.invoke(
+        main, ["--local-path", str(tmp_path), "--remote-url", "https://github.com/foo/bar"]
+    )
+    assert result.exit_code == 2
+    assert "Only one of PATH, --local-path, or --remote-url can be used" in result.output
+
+
+def test_cli_path_mutually_exclusive_with_remote(tmp_path: Path):
+    """Test that PATH and --remote-url cannot be used together."""
+    (tmp_path / "file.txt").write_text("content")
+    runner = CliRunner()
+    result = runner.invoke(
+        main, [str(tmp_path), "--remote-url", "https://github.com/foo/bar"]
+    )
+    assert result.exit_code == 2
+    assert "Only one of PATH, --local-path, or --remote-url can be used" in result.output
+
+
+def test_cli_requires_path_source():
+    """Test that at least one path source is required."""
+    runner = CliRunner()
+    result = runner.invoke(main, [])
+    assert result.exit_code == 2
+    assert "One of PATH, --local-path, or --remote-url is required" in result.output
+

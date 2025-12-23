@@ -33,6 +33,11 @@ def _expand_comma_separated(patterns: List[str]) -> List[str]:
     type=click.Path(exists=True, file_okay=False, path_type=Path),
 )
 @click.option("--remote-url", help="Git repo URL to download")
+@click.option(
+    "--local-path",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    help="Local directory path to process (alternative to PATH argument)",
+)
 @click.option("--private-token", envvar="GITHUB_TOKEN", help="Token for private repos")
 @click.option(
     "--include",
@@ -96,6 +101,7 @@ def _expand_comma_separated(patterns: List[str]) -> List[str]:
 def main(
     path: Path | None,
     remote_url: str | None,
+    local_path: Path | None,
     private_token: str | None,
     include: List[str],
     exclude: List[str],
@@ -111,10 +117,16 @@ def main(
     encoding: str,
 ) -> None:
     """Flatten a repository into one text dump."""
-    if remote_url and path:
-        raise click.UsageError("--remote-url cannot be used with PATH")
-    if not remote_url and not path:
-        raise click.UsageError("PATH or --remote-url required")
+    # Count how many path sources are provided
+    path_sources = sum([path is not None, local_path is not None, remote_url is not None])
+    if path_sources > 1:
+        raise click.UsageError("Only one of PATH, --local-path, or --remote-url can be used")
+    if path_sources == 0:
+        raise click.UsageError("One of PATH, --local-path, or --remote-url is required")
+
+    # Consolidate path sources - use whichever was provided
+    if local_path is not None:
+        path = local_path
     if split is not None and split <= 0:
         raise click.UsageError("--split must be a positive integer")
     if split and outfile is None:
