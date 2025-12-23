@@ -123,7 +123,7 @@ def main(
         raise click.UsageError("Only one of PATH, --local-path, or --remote-url can be used")
     if path_sources == 0:
         raise click.UsageError("One of PATH, --local-path, or --remote-url is required")
-    
+
     # Consolidate path sources - use whichever was provided
     if local_path is not None:
         path = local_path

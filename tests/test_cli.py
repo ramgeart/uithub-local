@@ -271,6 +271,17 @@ def test_cli_local_path_mutually_exclusive_with_remote(tmp_path: Path):
     assert "Only one of PATH, --local-path, or --remote-url can be used" in result.output
 
 
+def test_cli_path_mutually_exclusive_with_remote(tmp_path: Path):
+    """Test that PATH and --remote-url cannot be used together."""
+    (tmp_path / "file.txt").write_text("content")
+    runner = CliRunner()
+    result = runner.invoke(
+        main, [str(tmp_path), "--remote-url", "https://github.com/foo/bar"]
+    )
+    assert result.exit_code == 2
+    assert "Only one of PATH, --local-path, or --remote-url can be used" in result.output
+
+
 def test_cli_requires_path_source():
     """Test that at least one path source is required."""
     runner = CliRunner()
