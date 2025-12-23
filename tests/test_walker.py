@@ -124,3 +124,36 @@ def test_collect_files_no_gitignore(tmp_path):
     # Should include all files when no .gitignore exists
     assert "app.log" in names
     assert "readme.txt" in names
+
+
+def test_collect_files_gitignore_nested_patterns(tmp_path):
+    """Test that .gitignore handles nested directory patterns."""
+    from uithub_local.walker import collect_files
+
+    # Create .gitignore with nested patterns
+    (tmp_path / ".gitignore").write_text("**/node_modules/\n*.pyc\n")
+    
+    # Create nested node_modules
+    src_dir = tmp_path / "src"
+    src_dir.mkdir()
+    node_modules = src_dir / "node_modules"
+    node_modules.mkdir()
+    (node_modules / "package.txt").write_text("package")
+    
+    # Create .pyc file
+    (tmp_path / "app.pyc").write_text("compiled")
+    
+    # Create normal files
+    (tmp_path / "app.py").write_text("code")
+    (src_dir / "main.py").write_text("main code")
+    
+    files = collect_files(tmp_path, ["*"], [])
+    names = {f.path.as_posix() for f in files}
+    
+    # Should exclude nested node_modules and .pyc files
+    assert "src/node_modules/package.txt" not in names
+    assert "app.pyc" not in names
+    
+    # Should include normal files
+    assert "app.py" in names
+    assert "src/main.py" in names
