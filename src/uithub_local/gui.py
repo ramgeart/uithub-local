@@ -55,16 +55,27 @@ HTML_TEMPLATE = """
             <div id="loader" class="hidden absolute top-0 left-0 w-full h-1 shimmer"></div>
             
             <form id="dumpForm" class="space-y-6">
+                <!-- User/Repo -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="space-y-2">
                         <label class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">GitHub User</label>
-                        <input type="text" id="user" placeholder="google" required
+                        <input type="text" id="user" placeholder="google" required oninput="updateUri()"
                             class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm transition-all focus:bg-white/10">
                     </div>
                     <div class="space-y-2">
                         <label class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Repository</label>
-                        <input type="text" id="repo" placeholder="gemini-cli" required
+                        <input type="text" id="repo" placeholder="gemini-cli" required oninput="updateUri()"
                             class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm transition-all focus:bg-white/10">
+                    </div>
+                </div>
+
+                <!-- Private Token -->
+                <div class="space-y-2">
+                    <label class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">GitHub Token (Private Repos)</label>
+                    <div class="relative">
+                        <input type="password" id="token" placeholder="ghp_..." oninput="updateUri()"
+                            class="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-sm transition-all focus:bg-white/10 font-mono">
+                        <i data-lucide="lock" class="w-4 h-4 text-neutral-500 absolute left-3 top-2.5"></i>
                     </div>
                 </div>
 
@@ -79,22 +90,22 @@ HTML_TEMPLATE = """
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-2">
                             <label class="text-xs text-neutral-400">Include patterns</label>
-                            <input type="text" id="include" value="*" 
+                            <input type="text" id="include" value="*" oninput="updateUri()"
                                 class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm focus:bg-white/10">
                         </div>
                         <div class="space-y-2">
                             <label class="text-xs text-neutral-400">Exclude patterns</label>
-                            <input type="text" id="exclude" placeholder="tests/, docs/"
+                            <input type="text" id="exclude" placeholder="tests/, docs/" oninput="updateUri()"
                                 class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm focus:bg-white/10">
                         </div>
                         <div class="space-y-2">
                             <label class="text-xs text-neutral-400">Split tokens</label>
-                            <input type="number" id="split" placeholder="e.g. 50000"
+                            <input type="number" id="split" placeholder="e.g. 50000" oninput="updateUri()"
                                 class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm focus:bg-white/10">
                         </div>
                         <div class="space-y-2">
                             <label class="text-xs text-neutral-400">Format</label>
-                            <select id="format" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm focus:bg-white/10 appearance-none">
+                            <select id="format" onchange="updateUri()" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm focus:bg-white/10 appearance-none">
                                 <option value="text">Plain Text</option>
                                 <option value="json">JSON</option>
                                 <option value="html">HTML</option>
@@ -103,15 +114,28 @@ HTML_TEMPLATE = """
                     </div>
                     <div class="flex items-center gap-4">
                         <label class="flex items-center gap-2 cursor-pointer group">
-                            <input type="checkbox" id="exclude_comments" class="hidden peer">
+                            <input type="checkbox" id="exclude_comments" onchange="updateUri()" class="hidden peer">
                             <div class="w-4 h-4 rounded border border-white/20 peer-checked:bg-blue-600 peer-checked:border-blue-600 transition-all"></div>
                             <span class="text-xs text-neutral-400 group-hover:text-neutral-200 transition-colors">Exclude Comments</span>
                         </label>
                         <label class="flex items-center gap-2 cursor-pointer group">
-                            <input type="checkbox" id="not_ignore" class="hidden peer">
+                            <input type="checkbox" id="not_ignore" onchange="updateUri()" class="hidden peer">
                             <div class="w-4 h-4 rounded border border-white/20 peer-checked:bg-blue-600 peer-checked:border-blue-600 transition-all"></div>
                             <span class="text-xs text-neutral-400 group-hover:text-neutral-200 transition-colors">Ignore .gitignore</span>
                         </label>
+                    </div>
+                </div>
+
+                <!-- Live URI Preview -->
+                <div class="space-y-2 pt-4">
+                    <label class="text-[10px] font-bold text-neutral-500 uppercase tracking-[2px]">API Link (GET)</label>
+                    <div class="bg-black/40 border border-white/5 rounded-lg p-3 relative group">
+                        <div id="uriPreview" class="text-[11px] text-neutral-400 break-all pr-8 font-mono">
+                            Waiting for input...
+                        </div>
+                        <button type="button" onclick="copyUri()" class="absolute right-2 top-2 text-neutral-600 hover:text-blue-400 transition-colors opacity-0 group-hover:opacity-100">
+                            <i data-lucide="copy" class="w-4 h-4"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -146,6 +170,36 @@ HTML_TEMPLATE = """
             adv.classList.toggle('hidden');
         }
 
+        function updateUri() {
+            const user = document.getElementById('user').value || '{user}';
+            const repo = document.getElementById('repo').value || '{repo}';
+            const token = document.getElementById('token').value;
+            const format = document.getElementById('format').value;
+            const split = document.getElementById('split').value;
+            const include = document.getElementById('include').value;
+            const exclude = document.getElementById('exclude').value;
+            const exclude_comments = document.getElementById('exclude_comments').checked;
+            const not_ignore = document.getElementById('not_ignore').checked;
+
+            const url = new URL(`/dump/${user}/${repo}`, window.location.origin);
+            url.searchParams.append('format', format);
+            if (split) url.searchParams.append('split', split);
+            if (include && include !== '*') url.searchParams.append('include', include);
+            if (exclude) url.searchParams.append('exclude', exclude);
+            if (token) url.searchParams.append('private_token', token);
+            if (exclude_comments) url.searchParams.append('exclude_comments', 'true');
+            if (not_ignore) url.searchParams.append('not_ignore', 'true');
+
+            document.getElementById('uriPreview').innerText = decodeURIComponent(url.toString());
+        }
+
+        async function copyUri() {
+            const text = document.getElementById('uriPreview').innerText;
+            if (text.includes('{user}')) return;
+            await navigator.clipboard.writeText(text);
+            alert('Copied to clipboard!');
+        }
+
         document.getElementById('dumpForm').onsubmit = async (e) => {
             e.preventDefault();
             const submitBtn = document.getElementById('submitBtn');
@@ -153,6 +207,7 @@ HTML_TEMPLATE = """
             
             const user = document.getElementById('user').value;
             const repo = document.getElementById('repo').value;
+            const token = document.getElementById('token').value;
             const format = document.getElementById('format').value;
             const split = document.getElementById('split').value;
             const include = document.getElementById('include').value;
@@ -171,6 +226,7 @@ HTML_TEMPLATE = """
                 if (split) url.searchParams.append('split', split);
                 if (include) url.searchParams.append('include', include);
                 if (exclude) url.searchParams.append('exclude', exclude);
+                if (token) url.searchParams.append('private_token', token);
                 if (exclude_comments) url.searchParams.append('exclude_comments', 'true');
                 if (not_ignore) url.searchParams.append('not_ignore', 'true');
 
@@ -197,6 +253,9 @@ HTML_TEMPLATE = """
                 lucide.createIcons();
             }
         };
+
+        // Initialize URI
+        updateUri();
     </script>
 </body>
 </html>
