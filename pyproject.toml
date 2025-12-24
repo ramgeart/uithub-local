@@ -37,6 +37,7 @@ test = [
 
 [project.scripts]
 uithub = "uithub_local.cli:main"
+uithub-api = "uithub_local.server:run_server"
 
 [tool.black]
 line-length = 88
