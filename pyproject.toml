@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "uithub-local"
-version = "0.1.7"
+version = "0.1.8"
 description = "Local Uithub CLI to flatten Git repositories into text dumps."
 authors = [{name = "Codex", email = "codex@example.com"}]
 license = {text = "MIT"}
