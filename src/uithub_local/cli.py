@@ -97,6 +97,9 @@ def _expand_comma_separated(patterns: List[str]) -> List[str]:
     show_default=True,
     help="Encoding for --outfile",
 )
+@click.option("--serve", is_flag=True, help="Start the REST API server")
+@click.option("--host", default="0.0.0.0", show_default=True, help="Host for the server")
+@click.option("--port", default=8000, show_default=True, help="Port for the server")
 @click.version_option()
 def main(
     path: Path | None,
@@ -115,8 +118,17 @@ def main(
     stdout: bool,
     outfile: Path | None,
     encoding: str,
+    serve: bool,
+    host: str,
+    port: int,
 ) -> None:
     """Flatten a repository into one text dump."""
+    if serve:
+        import uvicorn
+        from .server import app
+        uvicorn.run(app, host=host, port=port)
+        return
+
     # Count how many path sources are provided
     path_sources = sum([path is not None, local_path is not None, remote_url is not None])
     if path_sources > 1:

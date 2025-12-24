@@ -3,7 +3,7 @@
 Flatten a local Git repository into a single text dump with an approximate token count.
 
 ## About
-Uithub-local packages repository contents into plain text, JSON or HTML dumps. Use it to prep code for large-context LLMs or save lightweight archives.
+Uithub-local packages repository contents into plain text, JSON or HTML dumps. Use it to prep code for large-context LLMs or save lightweight archives. It now includes a built-in REST API and Docker support.
 
 ## Quick Start
 
@@ -17,125 +17,116 @@ uithub --local-path path/to/repo --include "*.py" --exclude "tests/"
 # Process remote repository
 uithub --remote-url https://github.com/owner/repo
 
-# Comma-separated patterns (new in 0.1.6)
-uithub path/to/repo --exclude "*.html,*.js,*.css"
-uithub --local-path path/to/repo --include "*.py,*.js,*.md"
+# Start the REST API server
+uithub --serve --port 8000
 ```
 
 ## Usage
 
 Run `uithub --help` for all options. The dump can be printed to STDOUT or saved to a file. JSON output is available using `--format json`. Use `--format html` for a self-contained HTML dump with collapsible sections. 
 
-Local repositories can be processed using either a PATH argument or the `--local-path` option. Remote repositories can be processed with `--remote-url`; provide `--private-token` or set `GITHUB_TOKEN` for private repos. 
+### CLI Options
 
-Use `--max-size` to skip files larger than the given number of bytes (default 1048576).
-`.git/` directories are skipped automatically unless explicitly included.
+- `PATH` or `--local-path`: Local directory to process.
+- `--remote-url`: Git repository URL to download.
+- `--include`/`--exclude`: Glob patterns (now supports comma-separated strings).
+- `--max-size`: Skip files larger than this many bytes (default: 1MB).
+- `--max-tokens`: Hard token cap for the entire dump.
+- `--split`: Split output into multiple files of N tokens each.
+- `--format`: Output format (`text`, `json`, `html`).
+- `--exclude-comments`: Strip code comments.
+- `--not-ignore`: Do not respect `.gitignore` rules.
+- `--serve`: Start the REST API server.
+- `--host`/`--port`: Server configuration for the API.
 
-Both `--include` and `--exclude` options support comma-separated patterns for convenience. For example, `--exclude "*.html,*.js"` is equivalent to `--exclude "*.html" --exclude "*.js"`.
+### REST API
+
+You can start a REST API server to expose the `uithub-local` functionality over network:
+
+```bash
+uithub --serve --host 0.0.0.0 --port 8000
+```
+
+The API exposes a `POST /dump` endpoint that accepts all CLI parameters as a JSON body.
+
+#### Interactive Documentation
+Once the server is running, visit:
+- Swagger UI: `http://localhost:8000/docs`
+- Redoc: `http://localhost:8000/redoc`
+- OpenAPI Spec (YAML): `http://localhost:8000/openapi.yaml`
+
+### Docker Support
+
+Uithub-local can be run as a containerized service:
+
+```bash
+# Build the image
+docker build -t uithub-local .
+
+# Run the API server
+docker run -p 8000:8000 uithub-local
+```
 
 ### Respecting .gitignore
 
-By default, uithub respects `.gitignore` rules and excludes files matching patterns in the `.gitignore` file. This helps exclude common build artifacts, dependencies, and temporary files:
+By default, uithub respects `.gitignore` rules. Use `--not-ignore` to disable this:
 
 ```bash
-# Default behavior: respects .gitignore
-uithub path/to/repo
-
-# Disable .gitignore: include all files
 uithub path/to/repo --not-ignore
 ```
 
 ### Excluding comments
 
-Use `--exclude-comments` to strip code comments from the output, reducing token count by 30-50% on typical codebases:
+Use `--exclude-comments` to strip code comments from the output:
 
 ```bash
 uithub path/to/repo --exclude-comments
 ```
 
-This feature intelligently removes comments based on file extensions while preserving string literals. Supported languages include Python, JavaScript/TypeScript, Java, C/C++, Go, Rust, Ruby, SQL, HTML/CSS, Lua, Haskell, Lisp, and more.
-
 ### Splitting large outputs
 
-Use `--split N` to divide output into multiple files, each with approximately N tokens. This is useful when working with LLMs that have context window limits:
+Use `--split N` to divide output into multiple files of ~$N$ tokens:
 
 ```bash
 uithub path/to/repo --split 30000 --outfile output.txt
 ```
 
-This creates files named `<reponame>_1.txt`, `<reponame>_2.txt`, etc., each containing up to 30,000 tokens. The `--split` option works with all formats (text, JSON, HTML) and requires `--outfile` so it can determine the output directory from the provided file path.
-
-### HTML and JSON output
-
-To save an HTML dump and open it in your default browser:
-
-```bash
-uithub path/to/repo --format html --outfile dump.html && xdg-open dump.html
-```
-
-The generated HTML arranges files in collapsible "file cards" styled for a dark
-theme. Cards sit on a charcoal background with light text and a bright blue
-accent. A small chevron rotates when a card is opened, and file paths truncate
-in the middle to keep extensions visible. Code blocks scroll horizontally and
-cards are stacked in a centred container with a subtle drop shadow.
-
-Save a plain text dump with explicit encoding:
-
-```bash
-uithub path/to/repo --outfile dump.txt --encoding utf-8
-```
-
-### Running the test-suite
-
-Install development dependencies and run tests with coverage:
-
-```bash
-pip install .[test]
-pytest --cov=uithub_local -q
-```
-
-### Adjusting file size limit
-
-The `--max-size` option expects bytes. Raise it if needed, e.g.:
-
-```bash
-uithub path/to/repo --max-size $((2 * 1048576))
-```
-
 ## Changelog
 
 ### 0.1.8 (Unreleased)
-- Added `--local-path` option as an explicit alternative to the PATH argument for consistency with `--remote-url`.
-- Clarified that both PATH and `--local-path` traverse all subdirectories recursively.
+- Added `--serve` option to start a FastAPI REST API server.
+- Added `--host` and `--port` options for server configuration.
+- Added `Dockerfile` and GitHub Action for GHCR publishing.
+- Added OpenAPI 3.1.0 specification support.
+- Added `--local-path` option as an explicit alternative to the PATH argument.
 
 ### 0.1.7
 - Added `.gitignore` support: files matching patterns in `.gitignore` are now excluded by default.
-- Added `--not-ignore` flag to disable `.gitignore` processing and include all files.
+- Added `--not-ignore` flag to disable `.gitignore` processing.
 
 ### 0.1.6
 - Added support for comma-separated patterns in `--include` and `--exclude` options.
-- Example: `--exclude "*.html,*.js,*.css"` is now equivalent to multiple `--exclude` flags.
+- Example: `--exclude "*.html,*.js,*.css"` is now equivalent to multiple flags.
 
 ### 0.1.5
 - Added `--split N` option to divide output into multiple files of N tokens each.
 - Split works with all formats (text, JSON, HTML).
-- Useful for working with LLM context window limits.
 
 ### 0.1.4
 - Added `--exclude-comments` flag to strip code comments from output.
 - Supports 20+ languages with intelligent string literal preservation.
-- Improved escape sequence handling for backslashes in strings.
 
 ### 0.1.3
-- Directory patterns now match recursively ("dir/" excludes everything under it).
+- Directory patterns now match recursively.
 - `.git/` is excluded automatically unless explicitly included.
 - Correct repo name shown when dumping `.`.
+
 ### 0.1.2
-- Added ``--encoding`` option for file output.
+- Added `--encoding` option for file output.
 - Fixed UTF-8 writes when saving dumps.
 
 ### 0.1.1
-- HTML export improvements (lang attribute, mobile viewport, truncated summaries).
+- HTML export improvements.
 - Programmatic `dump_repo` helper function.
 - Coverage gate at 90%.
 

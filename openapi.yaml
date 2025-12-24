@@ -1,0 +1,135 @@
+openapi: 3.1.0
+info:
+  title: uithub-local API
+  description: REST API for uithub-local to flatten repositories into text dumps.
+  version: 0.1.7
+paths:
+  /dump:
+    post:
+      summary: Generate a repository dump
+      description: Generate a repository dump based on the provided options.
+      operationId: generate_dump_dump_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DumpRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    DumpRequest:
+      properties:
+        path:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Path
+          description: Local path or remote URL to process
+        remote_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Remote Url
+          description: Git repo URL to download
+        local_path:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Local Path
+          description: Local directory path to process
+        private_token:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Private Token
+          description: Token for private repos
+        include:
+          items:
+            type: string
+          type: array
+          title: Include
+          description: Glob(s) to include
+          default:
+          - '*'
+        exclude:
+          items:
+            type: string
+          type: array
+          title: Exclude
+          description: Glob(s) to exclude
+          default: []
+        max_size:
+          type: integer
+          title: Max Size
+          description: Skip files larger than this many bytes
+          default: 1048576
+        max_tokens:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Max Tokens
+          description: Hard cap; truncate largest files first
+        format:
+          type: string
+          title: Format
+          description: Output format (text, json, html)
+          default: text
+        binary_strict:
+          type: boolean
+          title: Binary Strict
+          description: Use strict binary detection
+          default: true
+        exclude_comments:
+          type: boolean
+          title: Exclude Comments
+          description: Strip code comments from output
+          default: false
+        not_ignore:
+          type: boolean
+          title: Not Ignore
+          description: Do not respect .gitignore rules
+          default: false
+      type: object
+      title: DumpRequest
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
