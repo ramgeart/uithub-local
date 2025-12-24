@@ -61,7 +61,17 @@ Options:
 3. Count tokens **after** any truncation.
 4. Expose `tokenizer.approximate_tokens(text: str) -> int` and `total_tokens(files: Iterable[Path]) -> int`.
 
-## 7 Rendering Spec
+## 7 Binary Detection & File Filtering
+
+The tool skips binary and non‑readable files automatically:
+
+* Files containing null bytes (`\0`) are always treated as binary.
+* MIME type guessing (`mimetypes.guess_type`) is used for unknown extensions.
+* Common source‑code extensions (`.rs`, `.py`, `.js`, `.cpp`, etc.) are **always** treated as text regardless of MIME type. See `CODE_EXTENSIONS` in `utils.py` for the full list.
+* With `--binary-strict` (default), files with >30 % non‑printable/UTF‑8 characters (excluding common whitespace) are also marked binary.
+* Files matching `.gitignore` are skipped unless `--not‑ignore` is set.
+
+## 8 Rendering Spec
 
 For each file, output:
 
@@ -77,7 +87,7 @@ Between files there is a blank line.  Top of dump:
 # ≈ <TOKEN_COUNT> tokens
 ```
 
-## 8 Testing
+## 9 Testing
 
 * Use **`pytest`**.
 * Achieve ≥90 % statement coverage.  Command:
@@ -88,25 +98,25 @@ pytest --cov=uithub_local -q
 
 * Include golden‑file test for renderer output.
 
-## 9 Programmatic Checks
+## 10 Programmatic Checks
 
 Add these tasks to **`[tool.ruff]`**, **`[tool.black]`** and **`[tool.mypy]`** in *pyproject.toml*.
 CI script must run: `ruff check`, `black --check`, `mypy`, `pytest`.
 
-## 10 Pull‑Request Guidelines (for Codex‑generated PRs)
+## 11 Pull‑Request Guidelines (for Codex‑generated PRs)
 
 1. Title: `feat: ...`, `fix: ...`, `docs: ...` etc.
 2. Description must list **changes**, **rationale**, **tests added**, **manual QA steps**.
 3. One logical concern per PR.
 4. All programmatic checks and tests must pass.
 
-## 11 Security & Robustness
+## 12 Security & Robustness
 
 * Skip files >1 MiB by default unless user forces via `--include`.
 * Detect binary files by `mimetypes` or null bytes and skip.
 * Handle encoding errors gracefully with `errors="replace"`.
 
-## 12 Future Extensions (placeholders only)
+## 13 Future Extensions (placeholders only)
 
 * HTML renderer with collapsible file sections.
 * JSON output compatible with RAG loaders.

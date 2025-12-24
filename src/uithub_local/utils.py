@@ -8,12 +8,107 @@ from pathlib import Path
 
 ASCII_WHITELIST = set(b"\t\n\r")
 
+# Common source code file extensions that should be treated as text
+CODE_EXTENSIONS = {
+    # Rust
+    ".rs",
+    # Python
+    ".py",
+    ".pyw",
+    ".pyx",
+    ".pxd",
+    ".pxi",
+    # Web
+    ".js",
+    ".jsx",
+    ".ts",
+    ".tsx",
+    ".mjs",
+    ".cjs",
+    # C/C++
+    ".c",
+    ".h",
+    ".cpp",
+    ".hpp",
+    ".cc",
+    ".cxx",
+    ".hh",
+    ".hxx",
+    ".ino",
+    # Java/Kotlin
+    ".java",
+    ".kt",
+    ".kts",
+    # Go
+    ".go",
+    # Swift
+    ".swift",
+    # C#
+    ".cs",
+    # Ruby
+    ".rb",
+    # PHP
+    ".php",
+    # Shell/scripts
+    ".sh",
+    ".bash",
+    ".zsh",
+    ".fish",
+    ".ps1",
+    ".bat",
+    ".cmd",
+    # Config
+    ".toml",
+    ".yaml",
+    ".yml",
+    ".json",
+    ".xml",
+    ".ini",
+    ".conf",
+    ".cfg",
+    ".properties",
+    # Other
+    ".vim",
+    ".lua",
+    ".r",
+    ".m",
+    ".mm",
+    ".scala",
+    ".sc",
+    ".dart",
+    ".ex",
+    ".exs",
+    ".erl",
+    ".hrl",
+    ".clj",
+    ".cljs",
+    ".cljc",
+    ".edn",
+    ".fs",
+    ".fsx",
+    ".fsi",
+    ".fsscript",
+}
+
 
 def is_binary_path(path: Path, *, strict: bool = True) -> bool:
     """Return True if file looks binary."""
+    # Check file extension first - many code files have incorrect MIME types
+    ext = path.suffix.lower()
+    if ext in CODE_EXTENSIONS:
+        # For known code files, only check for null bytes
+        try:
+            with open(path, "rb") as fh:
+                chunk = fh.read(8192)
+            return b"\0" in chunk
+        except OSError:
+            return True
+
+    # Fall back to MIME type detection for other files
     mime, _ = mimetypes.guess_type(path.as_posix())
     if mime is not None and not mime.startswith("text"):
         return True
+
     try:
         with open(path, "rb") as fh:
             chunk = fh.read(8192)
