@@ -5,18 +5,23 @@ from pathlib import Path
 from typing import List, Optional, Any
 
 from fastapi import FastAPI, HTTPException, Depends, Query
-from fastapi.responses import Response, JSONResponse
+from fastapi.responses import Response, JSONResponse, HTMLResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 
 from .api import dump_repo, dump_repo_split
 from .walker import DEFAULT_MAX_SIZE
+from .gui import HTML_TEMPLATE
 
 app = FastAPI(
     title="uithub-local API",
     description="REST API for uithub-local to flatten repositories into text dumps.",
     version="0.1.8",
 )
+
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+async def serve_gui():
+    return HTML_TEMPLATE
 
 security = HTTPBearer(auto_error=False)
 
