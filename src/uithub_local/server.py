@@ -149,7 +149,7 @@ async def generate_dump_get(
         auth=auth,
     )
 
-@app.get("/dump/{user}/{repo}", summary="Generate a repository dump for a GitHub user/repo (GET)")
+@app.get("/dump/{user}/{repo:path}", summary="Generate a repository dump for a GitHub user/repo/subtree (GET)")
 async def generate_dump_github_get(
     user: str,
     repo: str,
@@ -165,6 +165,7 @@ async def generate_dump_github_get(
     not_ignore: bool = Query(False, description="Do not respect .gitignore rules"),
     auth: Optional[HTTPAuthorizationCredentials] = Depends(security)
 ):
+    # repo can be "reponame" or "reponame/tree/branch/path"
     remote_url = f"https://github.com/{user}/{repo}"
     return await _handle_dump(
         remote_url=remote_url,
@@ -181,13 +182,14 @@ async def generate_dump_github_get(
         auth=auth,
     )
 
-@app.post("/dump/{user}/{repo}", summary="Generate a repository dump for a GitHub user/repo (POST)")
+@app.post("/dump/{user}/{repo:path}", summary="Generate a repository dump for a GitHub user/repo/subtree (POST)")
 async def generate_dump_github_post(
     user: str,
     repo: str,
     request: Optional[DumpRequest] = None,
     auth: Optional[HTTPAuthorizationCredentials] = Depends(security)
 ):
+    # repo can be "reponame" or "reponame/tree/branch/path"
     remote_url = f"https://github.com/{user}/{repo}"
     if request:
         return await _handle_dump(

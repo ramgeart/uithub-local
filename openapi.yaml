@@ -154,7 +154,7 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
   /dump/{user}/{repo}:
     get:
-      summary: Generate a repository dump for a GitHub user/repo (GET)
+      summary: Generate a repository dump for a GitHub user/repo/subtree (GET)
       operationId: generate_dump_github_get_dump__user___repo__get
       security:
       - HTTPBearer: []
@@ -282,7 +282,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
     post:
-      summary: Generate a repository dump for a GitHub user/repo (POST)
+      summary: Generate a repository dump for a GitHub user/repo/subtree (POST)
       operationId: generate_dump_github_post_dump__user___repo__post
       security:
       - HTTPBearer: []

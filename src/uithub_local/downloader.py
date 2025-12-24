@@ -16,7 +16,7 @@ from typing import Iterator
 @contextmanager
 def download_repo(url: str, token: str | None = None) -> Iterator[Path]:
     """Yield a temporary directory with the extracted repo from ``url``."""
-    archive_url = _archive_url(url)
+    archive_url, subtree = _archive_url(url)
     headers = {}
     if token:
         if "github.com" in archive_url:
@@ -47,14 +47,23 @@ def download_repo(url: str, token: str | None = None) -> Iterator[Path]:
         root_entries = list(Path(tmp.name).iterdir())
         single = len(root_entries) == 1 and root_entries[0].is_dir()
         root = root_entries[0] if single else Path(tmp.name)
-        yield root
+        
+        target = root
+        if subtree:
+            target = root / subtree
+            if not target.exists():
+                # Some zipballs might have different internal structures
+                # but usually it's {owner}-{repo}-{sha}
+                raise RuntimeError(f"Subtree path '{subtree}' not found in repository")
+                
+        yield target
     finally:
         tmp.cleanup()
 
 
-def _archive_url(url: str) -> str:
+def _archive_url(url: str) -> tuple[str, str | None]:
     if url.endswith(".zip"):
-        return url
+        return url, None
 
     parsed = urllib.parse.urlparse(url)
     host = parsed.hostname
@@ -71,13 +80,24 @@ def _archive_url(url: str) -> str:
 
     if path.endswith(".git"):
         path = path[:-4]
+    
     slug = path.strip("/")
+    subtree = None
 
     if host.endswith("github.com"):
-        return f"https://api.github.com/repos/{slug}/zipball"
+        # Handle /tree/{branch}/{path}
+        parts = slug.split("/")
+        if len(parts) > 3 and parts[2] == "tree":
+            owner, repo = parts[0], parts[1]
+            branch = parts[3]
+            subtree = "/".join(parts[4:]) if len(parts) > 4 else None
+            return f"https://api.github.com/repos/{owner}/{repo}/zipball/{branch}", subtree
+        
+        return f"https://api.github.com/repos/{slug}/zipball", None
+        
     if host.endswith("gitlab.com"):
         repo = slug.split("/")[-1]
-        return f"https://gitlab.com/{slug}/-/archive/master/{repo}-master.zip"
+        return f"https://gitlab.com/{slug}/-/archive/master/{repo}-master.zip", None
     if host.endswith("bitbucket.org"):
-        return f"https://bitbucket.org/{slug}/get/master.zip"
+        return f"https://bitbucket.org/{slug}/get/master.zip", None
     raise ValueError("Unsupported host")

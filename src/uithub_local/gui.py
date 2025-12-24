@@ -63,8 +63,8 @@ HTML_TEMPLATE = """
                             class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm transition-all focus:bg-white/10">
                     </div>
                     <div class="space-y-2">
-                        <label class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Repository</label>
-                        <input type="text" id="repo" placeholder="gemini-cli" required oninput="updateUri()"
+                        <label class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Repository / Subtree</label>
+                        <input type="text" id="repo" placeholder="repo/tree/main/path" required oninput="updateUri()"
                             class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm transition-all focus:bg-white/10">
                     </div>
                 </div>
