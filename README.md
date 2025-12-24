@@ -47,7 +47,23 @@ You can start a REST API server to expose the `uithub-local` functionality over 
 uithub --serve --host 0.0.0.0 --port 8000
 ```
 
-The API exposes a `POST /dump` endpoint that accepts all CLI parameters as a JSON body.
+The API strictly supports remote repositories via `remote_url`.
+
+#### Authentication
+The API supports both a `private_token` parameter and standard **HTTP Bearer** authentication. If a Bearer token is provided in the `Authorization` header, it will take precedence.
+
+#### Endpoints
+- `POST /dump`: Accepts a JSON body with processing options.
+- `GET /dump`: Accepts processing options as query parameters.
+- `GET /dump/{user}/{repo}`: Directly process a GitHub repository.
+    - Example: `GET /dump/google/gemini-cli?exclude=*.py`
+- `POST /dump/{user}/{repo}`: Process a GitHub repository with optional JSON body for overrides.
+
+#### Splitting and Formats
+- **Splitting**: Provide a `split` parameter (integer) to receive a JSON response containing multiple parts.
+- **Formats**: Supports `text`, `json`, and `html`.
+    - If `format=json` is used without `split`, the response is a single JSON object with the dump content.
+    - If `format=text` or `html`, the raw content is returned with the appropriate media type.
 
 #### Interactive Documentation
 Once the server is running, visit:

@@ -2,19 +2,311 @@ openapi: 3.1.0
 info:
   title: uithub-local API
   description: REST API for uithub-local to flatten repositories into text dumps.
-  version: 0.1.7
+  version: 0.1.8
 paths:
   /dump:
     post:
-      summary: Generate a repository dump
-      description: Generate a repository dump based on the provided options.
-      operationId: generate_dump_dump_post
+      summary: Generate a repository dump (POST)
+      operationId: generate_dump_post_dump_post
+      security:
+      - HTTPBearer: []
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/DumpRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      summary: Generate a repository dump (GET)
+      operationId: generate_dump_get_dump_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: remote_url
+        in: query
         required: true
+        schema:
+          type: string
+          description: Git repo URL to download
+          title: Remote Url
+        description: Git repo URL to download
+      - name: private_token
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Token for private repos
+          title: Private Token
+        description: Token for private repos
+      - name: include
+        in: query
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+          description: Glob(s) to include
+          default:
+          - '*'
+          title: Include
+        description: Glob(s) to include
+      - name: exclude
+        in: query
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+          description: Glob(s) to exclude
+          default: []
+          title: Exclude
+        description: Glob(s) to exclude
+      - name: max_size
+        in: query
+        required: false
+        schema:
+          type: integer
+          description: Skip files larger than this many bytes
+          default: 1048576
+          title: Max Size
+        description: Skip files larger than this many bytes
+      - name: max_tokens
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          description: Hard cap; truncate largest files first
+          title: Max Tokens
+        description: Hard cap; truncate largest files first
+      - name: split
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          description: Split output into multiple parts
+          title: Split
+        description: Split output into multiple parts
+      - name: format
+        in: query
+        required: false
+        schema:
+          type: string
+          description: Output format (text, json, html)
+          default: text
+          title: Format
+        description: Output format (text, json, html)
+      - name: binary_strict
+        in: query
+        required: false
+        schema:
+          type: boolean
+          description: Use strict binary detection
+          default: true
+          title: Binary Strict
+        description: Use strict binary detection
+      - name: exclude_comments
+        in: query
+        required: false
+        schema:
+          type: boolean
+          description: Strip code comments from output
+          default: false
+          title: Exclude Comments
+        description: Strip code comments from output
+      - name: not_ignore
+        in: query
+        required: false
+        schema:
+          type: boolean
+          description: Do not respect .gitignore rules
+          default: false
+          title: Not Ignore
+        description: Do not respect .gitignore rules
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /dump/{user}/{repo}:
+    get:
+      summary: Generate a repository dump for a GitHub user/repo (GET)
+      operationId: generate_dump_github_get_dump__user___repo__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: user
+        in: path
+        required: true
+        schema:
+          type: string
+          title: User
+      - name: repo
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Repo
+      - name: private_token
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Token for private repos
+          title: Private Token
+        description: Token for private repos
+      - name: include
+        in: query
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+          description: Glob(s) to include
+          default:
+          - '*'
+          title: Include
+        description: Glob(s) to include
+      - name: exclude
+        in: query
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+          description: Glob(s) to exclude
+          default: []
+          title: Exclude
+        description: Glob(s) to exclude
+      - name: max_size
+        in: query
+        required: false
+        schema:
+          type: integer
+          description: Skip files larger than this many bytes
+          default: 1048576
+          title: Max Size
+        description: Skip files larger than this many bytes
+      - name: max_tokens
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          description: Hard cap; truncate largest files first
+          title: Max Tokens
+        description: Hard cap; truncate largest files first
+      - name: split
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          description: Split output into multiple parts
+          title: Split
+        description: Split output into multiple parts
+      - name: format
+        in: query
+        required: false
+        schema:
+          type: string
+          description: Output format (text, json, html)
+          default: text
+          title: Format
+        description: Output format (text, json, html)
+      - name: binary_strict
+        in: query
+        required: false
+        schema:
+          type: boolean
+          description: Use strict binary detection
+          default: true
+          title: Binary Strict
+        description: Use strict binary detection
+      - name: exclude_comments
+        in: query
+        required: false
+        schema:
+          type: boolean
+          description: Strip code comments from output
+          default: false
+          title: Exclude Comments
+        description: Strip code comments from output
+      - name: not_ignore
+        in: query
+        required: false
+        schema:
+          type: boolean
+          description: Do not respect .gitignore rules
+          default: false
+          title: Not Ignore
+        description: Do not respect .gitignore rules
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      summary: Generate a repository dump for a GitHub user/repo (POST)
+      operationId: generate_dump_github_post_dump__user___repo__post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: user
+        in: path
+        required: true
+        schema:
+          type: string
+          title: User
+      - name: repo
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Repo
+      requestBody:
+        content:
+          application/json:
+            schema:
+              anyOf:
+              - $ref: '#/components/schemas/DumpRequest'
+              - type: 'null'
+              title: Request
       responses:
         '200':
           description: Successful Response
@@ -31,24 +323,10 @@ components:
   schemas:
     DumpRequest:
       properties:
-        path:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Path
-          description: Local path or remote URL to process
         remote_url:
-          anyOf:
-          - type: string
-          - type: 'null'
+          type: string
           title: Remote Url
           description: Git repo URL to download
-        local_path:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Local Path
-          description: Local directory path to process
         private_token:
           anyOf:
           - type: string
@@ -81,6 +359,12 @@ components:
           - type: 'null'
           title: Max Tokens
           description: Hard cap; truncate largest files first
+        split:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Split
+          description: Split output into multiple parts, each with N tokens
         format:
           type: string
           title: Format
@@ -102,6 +386,8 @@ components:
           description: Do not respect .gitignore rules
           default: false
       type: object
+      required:
+      - remote_url
       title: DumpRequest
     HTTPValidationError:
       properties:
@@ -133,3 +419,7 @@ components:
       - msg
       - type
       title: ValidationError
+  securitySchemes:
+    HTTPBearer:
+      type: http
+      scheme: bearer
