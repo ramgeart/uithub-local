@@ -31,10 +31,11 @@ def load_text(
     except UnicodeDecodeError:
         content = path.read_text(encoding="utf-8", errors="replace")
 
-    if filter_content:
-        content = apply_content_filters(content, path)
-
+    # Strip comments first (if enabled) to reduce content that needs filtering
     if exclude_comments:
         content = strip_comments(content, path)
+
+    if filter_content:
+        content = apply_content_filters(content, path)
 
     return content

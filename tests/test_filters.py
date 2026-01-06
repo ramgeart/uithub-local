@@ -3,8 +3,6 @@
 import json
 from pathlib import Path
 
-import pytest
-
 from uithub_local.filters import (
     apply_content_filters,
     filter_base64_strings,
@@ -177,8 +175,9 @@ class TestFilterBase64Strings:
         """Should respect custom minimum length."""
         base64_str = "A" * 50 + "a" * 10 + "0" * 10  # 70 chars
         content = f' {base64_str} '
-        # Default min is 64, so this should be filtered
+        # Default min is 64, so this should be filtered (string is 70 chars)
         result = filter_base64_strings(content, min_length=64)
+        assert "[BASE64_DATA_FILTERED]" in result
         # But with higher min, it should be preserved
         result_high = filter_base64_strings(content, min_length=100)
         assert base64_str in result_high
@@ -238,10 +237,10 @@ class TestFilterSensitiveUrls:
 
     def test_filters_oauth_token(self):
         """Should filter oauth_token parameter."""
-        url = "https://oauth.com/callback?oauth_token=abc123&state=xyz"
+        url = "https://oauth.com/callback?oauth_token=abc123&redirect=home"
         result = filter_sensitive_urls(url)
         assert "oauth_token=[FILTERED]" in result
-        assert "state=[FILTERED]" in result
+        assert "redirect=home" in result
 
     def test_filters_auth_header_style(self):
         """Should filter auth-related parameters."""
@@ -287,12 +286,14 @@ class TestApplyContentFilters:
 
     def test_combines_all_filters(self, tmp_path: Path):
         """Should apply all filters together."""
-        content = 'url: https://api.com?token=secret data: "' + "A" * 100 + '"'
+        # Use a proper base64-like string (mixed case, numbers, 64+ chars)
+        base64_str = "aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ0123456789AB"
+        content = f'url: https://api.com?token=secret data: "{base64_str}"'
         path = tmp_path / "config.yaml"
         
         result = apply_content_filters(content, path)
         assert "token=[FILTERED]" in result
-        # The base64 might or might not be filtered depending on pattern match
+        assert "[BASE64_DATA_FILTERED]" in result
 
     def test_respects_filter_flags(self, tmp_path: Path):
         """Should respect individual filter flags."""

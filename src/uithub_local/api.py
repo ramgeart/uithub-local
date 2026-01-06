@@ -26,8 +26,9 @@ def dump_repo(
             value is not used by ``dump_repo`` itself.
         **cli_kwargs: Extra options matching the CLI such as ``include``,
             ``exclude``, ``max_size``, ``max_tokens``, ``binary_strict``,
-            ``exclude_comments``, ``filter_content``, ``respect_gitignore``
-            and ``private_token``.
+            ``exclude_comments``, ``filter_content`` (filters ipynb outputs,
+            base64, and sensitive URLs), ``respect_gitignore`` and
+            ``private_token``.
 
     Returns:
         The rendered dump.

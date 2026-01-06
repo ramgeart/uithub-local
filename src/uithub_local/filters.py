@@ -17,6 +17,9 @@ from pathlib import Path
 MIN_BASE64_LENGTH = 64
 
 # Common sensitive URL query parameter names
+# Note: Parameters like "hash", "key", "code", and "state" are intentionally
+# excluded because they are commonly used for non-sensitive purposes and would
+# cause excessive false positives.
 SENSITIVE_PARAMS = frozenset({
     # Authentication/Authorization
     "token",
@@ -41,7 +44,6 @@ SENSITIVE_PARAMS = frozenset({
     "client_secret",
     "private_key",
     "privatekey",
-    "key",
     # Cookies and credentials
     "cookie",
     "cookies",
@@ -53,8 +55,6 @@ SENSITIVE_PARAMS = frozenset({
     # OAuth
     "oauth",
     "oauth_token",
-    "code",
-    "state",
     # AWS
     "aws_access_key_id",
     "aws_secret_access_key",
@@ -63,16 +63,16 @@ SENSITIVE_PARAMS = frozenset({
     "signature",
     "sig",
     "sign",
-    "hash",
     "nonce",
 })
 
 # Core sensitive keywords that should trigger substring matching
 # These are common prefixes/suffixes that indicate sensitive data
+# Note: "key" is intentionally excluded as it would cause false positives
+# for parameters like "sort_key", "lookup_key", etc.
 SENSITIVE_KEYWORDS = frozenset({
     "token",
     "secret",
-    "key",
     "password",
     "credential",
     "auth",
@@ -93,8 +93,9 @@ BASE64_STANDALONE_PATTERN = re.compile(
 )
 
 # Regex pattern to match URLs with potentially sensitive query parameters
+# Note: excludes URL fragments (#) to avoid incorrect parsing
 URL_WITH_PARAMS_PATTERN = re.compile(
-    r"(https?://[^\s\"'<>]+)\?([^\s\"'<>]+)",
+    r"(https?://[^\s\"'<>#]+)\?([^\s\"'<>#]+)",
     re.IGNORECASE,
 )
 
@@ -167,16 +168,21 @@ def filter_base64_strings(content: str, min_length: int = MIN_BASE64_LENGTH) -> 
     # Handle standalone base64 strings
     def replace_base64(match: re.Match[str]) -> str:
         b64_str = match.group(1)
-        if len(b64_str) >= min_length:
-            # Additional check: must look like actual base64
-            # Real base64 data tends to have mix of upper/lower and numbers
-            has_upper = any(c.isupper() for c in b64_str[:100])
-            has_lower = any(c.islower() for c in b64_str[:100])
-            has_digit = any(c.isdigit() for c in b64_str[:100])
-            
-            # If it has good mix, it's likely base64
-            if sum([has_upper, has_lower, has_digit]) >= 2:
-                return "[BASE64_DATA_FILTERED]"
+        # Check length first to avoid unnecessary character analysis
+        if len(b64_str) < min_length:
+            return match.group(0)
+        
+        # Additional check: must look like actual base64
+        # Real base64 data tends to have mix of upper/lower and numbers
+        # Only check first 100 chars for efficiency
+        sample = b64_str[:100]
+        has_upper = any(c.isupper() for c in sample)
+        has_lower = any(c.islower() for c in sample)
+        has_digit = any(c.isdigit() for c in sample)
+        
+        # If it has good mix, it's likely base64
+        if sum([has_upper, has_lower, has_digit]) >= 2:
+            return "[BASE64_DATA_FILTERED]"
         return match.group(0)
     
     content = BASE64_STANDALONE_PATTERN.sub(replace_base64, content)
