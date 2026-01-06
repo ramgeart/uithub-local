@@ -67,6 +67,18 @@ SENSITIVE_PARAMS = frozenset({
     "nonce",
 })
 
+# Core sensitive keywords that should trigger substring matching
+# These are common prefixes/suffixes that indicate sensitive data
+SENSITIVE_KEYWORDS = frozenset({
+    "token",
+    "secret",
+    "key",
+    "password",
+    "credential",
+    "auth",
+    "session",
+})
+
 # Regex pattern to match base64 data URIs (data:mime/type;base64,...)
 BASE64_DATA_URI_PATTERN = re.compile(
     r"data:[a-zA-Z0-9+/.-]+;base64,[A-Za-z0-9+/=]{64,}",
@@ -172,6 +184,24 @@ def filter_base64_strings(content: str, min_length: int = MIN_BASE64_LENGTH) -> 
     return content
 
 
+def _is_sensitive_param(key_lower: str) -> bool:
+    """Check if a parameter key is sensitive.
+    
+    Args:
+        key_lower: Lowercase parameter key with hyphens converted to underscores.
+        
+    Returns:
+        True if the parameter is considered sensitive.
+    """
+    # First check exact match (O(1) for frozenset)
+    if key_lower in SENSITIVE_PARAMS:
+        return True
+    
+    # Then check if any core keyword is contained in the key
+    # This is more efficient than checking all SENSITIVE_PARAMS
+    return any(keyword in key_lower for keyword in SENSITIVE_KEYWORDS)
+
+
 def filter_sensitive_urls(content: str) -> str:
     """Sanitize URLs that contain potentially sensitive query parameters.
     
@@ -200,9 +230,7 @@ def filter_sensitive_urls(content: str) -> str:
                 key_lower = key.lower().replace("-", "_")
                 
                 # Check if this is a sensitive parameter
-                if key_lower in SENSITIVE_PARAMS or any(
-                    sensitive in key_lower for sensitive in SENSITIVE_PARAMS
-                ):
+                if _is_sensitive_param(key_lower):
                     filtered_params.append(f"{key}=[FILTERED]")
                 else:
                     filtered_params.append(param)
