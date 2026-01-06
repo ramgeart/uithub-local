@@ -26,7 +26,8 @@ def dump_repo(
             value is not used by ``dump_repo`` itself.
         **cli_kwargs: Extra options matching the CLI such as ``include``,
             ``exclude``, ``max_size``, ``max_tokens``, ``binary_strict``,
-            ``exclude_comments``, ``respect_gitignore`` and ``private_token``.
+            ``exclude_comments``, ``filter_content``, ``respect_gitignore``
+            and ``private_token``.
 
     Returns:
         The rendered dump.
@@ -38,6 +39,7 @@ def dump_repo(
     max_tokens = cli_kwargs.get("max_tokens")
     binary_strict = cli_kwargs.get("binary_strict", True)
     exclude_comments = cli_kwargs.get("exclude_comments", False)
+    filter_content = cli_kwargs.get("filter_content", False)
     respect_gitignore = cli_kwargs.get("respect_gitignore", True)
     private_token = cli_kwargs.get("private_token")
 
@@ -57,6 +59,7 @@ def dump_repo(
             max_tokens=max_tokens,
             fmt=fmt,
             exclude_comments=exclude_comments,
+            filter_content=filter_content,
         )
 
     url = str(path_or_url)
@@ -75,6 +78,7 @@ def dump_repo(
             max_tokens=max_tokens,
             fmt=fmt,
             exclude_comments=exclude_comments,
+            filter_content=filter_content,
         )
 
 
@@ -102,6 +106,7 @@ def dump_repo_split(
     max_tokens = cli_kwargs.get("max_tokens")
     binary_strict = cli_kwargs.get("binary_strict", True)
     exclude_comments = cli_kwargs.get("exclude_comments", False)
+    filter_content = cli_kwargs.get("filter_content", False)
     respect_gitignore = cli_kwargs.get("respect_gitignore", True)
     private_token = cli_kwargs.get("private_token")
 
@@ -122,6 +127,7 @@ def dump_repo_split(
             max_tokens=max_tokens,
             fmt=fmt,
             exclude_comments=exclude_comments,
+            filter_content=filter_content,
         )
 
     url = str(path_or_url)
@@ -141,4 +147,5 @@ def dump_repo_split(
             max_tokens=max_tokens,
             fmt=fmt,
             exclude_comments=exclude_comments,
+            filter_content=filter_content,
         )

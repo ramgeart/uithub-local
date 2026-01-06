@@ -84,6 +84,12 @@ def _expand_comma_separated(patterns: List[str]) -> List[str]:
     help="Strip code comments from output",
 )
 @click.option(
+    "--filter-content",
+    is_flag=True,
+    default=False,
+    help="Filter ipynb outputs, base64 strings, and sensitive URLs",
+)
+@click.option(
     "--not-ignore",
     is_flag=True,
     default=False,
@@ -114,6 +120,7 @@ def main(
     fmt: str,
     binary_strict: bool,
     exclude_comments: bool,
+    filter_content: bool,
     not_ignore: bool,
     stdout: bool,
     outfile: Path | None,
@@ -167,6 +174,7 @@ def main(
                         max_tokens=max_tokens,
                         fmt=fmt,
                         exclude_comments=exclude_comments,
+                        filter_content=filter_content,
                     )
                 else:
                     outputs = [
@@ -178,6 +186,7 @@ def main(
                                 max_tokens=max_tokens,
                                 fmt=fmt,
                                 exclude_comments=exclude_comments,
+                                filter_content=filter_content,
                             ),
                         )
                     ]
@@ -198,6 +207,7 @@ def main(
                     max_tokens=max_tokens,
                     fmt=fmt,
                     exclude_comments=exclude_comments,
+                    filter_content=filter_content,
                 )
             else:
                 outputs = [
@@ -209,6 +219,7 @@ def main(
                             max_tokens=max_tokens,
                             fmt=fmt,
                             exclude_comments=exclude_comments,
+                            filter_content=filter_content,
                         ),
                     )
                 ]
