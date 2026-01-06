@@ -36,6 +36,7 @@ class DumpRequest(BaseModel):
     format: str = Field("text", description="Output format (text, json, html)")
     binary_strict: bool = Field(True, description="Use strict binary detection")
     exclude_comments: bool = Field(False, description="Strip code comments from output")
+    filter_content: bool = Field(False, description="Filter ipynb outputs, base64 strings, and sensitive URLs")
     not_ignore: bool = Field(False, description="Do not respect .gitignore rules")
 
 async def _handle_dump(
@@ -49,6 +50,7 @@ async def _handle_dump(
     fmt: str = "text",
     binary_strict: bool = True,
     exclude_comments: bool = False,
+    filter_content: bool = False,
     not_ignore: bool = False,
     auth: Optional[HTTPAuthorizationCredentials] = None,
 ):
@@ -67,6 +69,7 @@ async def _handle_dump(
                 max_tokens=max_tokens,
                 binary_strict=binary_strict,
                 exclude_comments=exclude_comments,
+                filter_content=filter_content,
                 respect_gitignore=not not_ignore,
                 private_token=token,
             )
@@ -84,6 +87,7 @@ async def _handle_dump(
             max_tokens=max_tokens,
             binary_strict=binary_strict,
             exclude_comments=exclude_comments,
+            filter_content=filter_content,
             respect_gitignore=not not_ignore,
             private_token=token,
         )
@@ -115,6 +119,7 @@ async def generate_dump_post(
         fmt=request.format,
         binary_strict=request.binary_strict,
         exclude_comments=request.exclude_comments,
+        filter_content=request.filter_content,
         not_ignore=request.not_ignore,
         auth=auth,
     )
@@ -131,6 +136,7 @@ async def generate_dump_get(
     format: str = Query("text", description="Output format (text, json, html)"),
     binary_strict: bool = Query(True, description="Use strict binary detection"),
     exclude_comments: bool = Query(False, description="Strip code comments from output"),
+    filter_content: bool = Query(False, description="Filter ipynb outputs, base64 strings, and sensitive URLs"),
     not_ignore: bool = Query(False, description="Do not respect .gitignore rules"),
     auth: Optional[HTTPAuthorizationCredentials] = Depends(security)
 ):
@@ -145,6 +151,7 @@ async def generate_dump_get(
         fmt=format,
         binary_strict=binary_strict,
         exclude_comments=exclude_comments,
+        filter_content=filter_content,
         not_ignore=not_ignore,
         auth=auth,
     )
@@ -162,6 +169,7 @@ async def generate_dump_github_get(
     format: str = Query("text", description="Output format (text, json, html)"),
     binary_strict: bool = Query(True, description="Use strict binary detection"),
     exclude_comments: bool = Query(False, description="Strip code comments from output"),
+    filter_content: bool = Query(False, description="Filter ipynb outputs, base64 strings, and sensitive URLs"),
     not_ignore: bool = Query(False, description="Do not respect .gitignore rules"),
     auth: Optional[HTTPAuthorizationCredentials] = Depends(security)
 ):
@@ -178,6 +186,7 @@ async def generate_dump_github_get(
         fmt=format,
         binary_strict=binary_strict,
         exclude_comments=exclude_comments,
+        filter_content=filter_content,
         not_ignore=not_ignore,
         auth=auth,
     )
@@ -203,6 +212,7 @@ async def generate_dump_github_post(
             fmt=request.format,
             binary_strict=request.binary_strict,
             exclude_comments=request.exclude_comments,
+            filter_content=request.filter_content,
             not_ignore=request.not_ignore,
             auth=auth,
         )

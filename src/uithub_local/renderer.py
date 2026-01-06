@@ -17,7 +17,11 @@ class FileDump:
     """A file plus its loaded contents and token count."""
 
     def __init__(
-        self, info: FileInfo, root: Path, exclude_comments: bool = False
+        self,
+        info: FileInfo,
+        root: Path,
+        exclude_comments: bool = False,
+        filter_content: bool = False,
     ) -> None:
         self.path = info.path
         self.full_path = root / info.path
@@ -25,7 +29,11 @@ class FileDump:
         self.tokens = 0
         self.content = ""
         try:
-            self.content = load_text(self.full_path, exclude_comments=exclude_comments)
+            self.content = load_text(
+                self.full_path,
+                exclude_comments=exclude_comments,
+                filter_content=filter_content,
+            )
             self.tokens = approximate_tokens(self.content)
         except Exception:
             self.content = ""
@@ -39,10 +47,17 @@ class Dump:
         root: Path,
         max_tokens: int | None = None,
         exclude_comments: bool = False,
+        filter_content: bool = False,
     ) -> None:
         self.root = root
         self.file_dumps: List[FileDump] = [
-            FileDump(info, root, exclude_comments=exclude_comments) for info in files
+            FileDump(
+                info,
+                root,
+                exclude_comments=exclude_comments,
+                filter_content=filter_content,
+            )
+            for info in files
         ]
         self.total_tokens = sum(fd.tokens for fd in self.file_dumps)
         if max_tokens is not None and self.total_tokens > max_tokens:
@@ -279,8 +294,15 @@ def render(
     max_tokens: int | None = None,
     fmt: str = "text",
     exclude_comments: bool = False,
+    filter_content: bool = False,
 ) -> str:
-    dump = Dump(files, root, max_tokens, exclude_comments=exclude_comments)
+    dump = Dump(
+        files,
+        root,
+        max_tokens,
+        exclude_comments=exclude_comments,
+        filter_content=filter_content,
+    )
     resolved = root.resolve()
     repo_name = resolved.name or resolved.parent.name
     if fmt == "json":
@@ -298,6 +320,7 @@ def render_split(
     max_tokens: int | None = None,
     fmt: str = "text",
     exclude_comments: bool = False,
+    filter_content: bool = False,
 ) -> List[Tuple[str, str]]:
     """Render repository into multiple outputs split by token count.
 
@@ -308,11 +331,18 @@ def render_split(
         max_tokens: Optional hard cap on total tokens (applied before splitting).
         fmt: Output format ("text", "json", or "html").
         exclude_comments: Whether to strip code comments.
+        filter_content: Whether to filter ipynb outputs, base64, and sensitive URLs.
 
     Returns:
         List of (filename, content) tuples for each chunk.
     """
-    dump = Dump(files, root, max_tokens, exclude_comments=exclude_comments)
+    dump = Dump(
+        files,
+        root,
+        max_tokens,
+        exclude_comments=exclude_comments,
+        filter_content=filter_content,
+    )
     resolved = root.resolve()
     repo_name = resolved.name or resolved.parent.name
 
